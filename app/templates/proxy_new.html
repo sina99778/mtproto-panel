@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="text-xl font-bold mb-4">ساخت پروکسی جدید</h1>
+
+{% if error %}<p class="bg-rose-900/50 text-rose-200 text-sm rounded-lg p-3 mb-4">{{ error }}</p>{% endif %}
+
+<form method="post" action="/proxies" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-5 max-w-2xl">
+
+  <div>
+    <label class="block text-sm mb-1">نام پروکسی</label>
+    <input name="name" placeholder="مثلاً: سرور اصلی" required
+           class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 outline-none focus:border-sky-500">
+  </div>
+
+  <div>
+    <label class="block text-sm mb-2">نوع اتصال</label>
+    <div class="grid sm:grid-cols-3 gap-2">
+      <label class="cursor-pointer">
+        <input type="radio" name="mode" value="direct" class="peer hidden" checked onchange="onMode()">
+        <div class="rounded-xl border border-slate-700 p-3 text-center peer-checked:border-sky-500 peer-checked:bg-sky-950/40">
+          <div class="font-semibold">مستقیم</div><div class="text-xs text-slate-400">FakeTLS</div>
+        </div>
+      </label>
+      <label class="cursor-pointer">
+        <input type="radio" name="mode" value="tunneled" class="peer hidden" onchange="onMode()">
+        <div class="rounded-xl border border-slate-700 p-3 text-center peer-checked:border-violet-500 peer-checked:bg-violet-950/40">
+          <div class="font-semibold">تانل‌شده</div><div class="text-xs text-slate-400">رله به خارج</div>
+        </div>
+      </label>
+      <label class="cursor-pointer">
+        <input type="radio" name="mode" value="cloudflare" class="peer hidden" onchange="onMode()">
+        <div class="rounded-xl border border-slate-700 p-3 text-center peer-checked:border-orange-500 peer-checked:bg-orange-950/40">
+          <div class="font-semibold">کلودفلر</div><div class="text-xs text-slate-400">Spectrum</div>
+        </div>
+      </label>
+    </div>
+  </div>
+
+  <div class="grid sm:grid-cols-2 gap-4">
+    <div>
+      <label class="block text-sm mb-1">پورت</label>
+      <input name="port" type="number" min="1" max="65535" value="8443" required
+             class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 outline-none focus:border-sky-500">
+    </div>
+    <div>
+      <label class="block text-sm mb-1">دامنه FakeTLS</label>
+      <input name="tls_domain" value="www.cloudflare.com" dir="ltr"
+             class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 outline-none focus:border-sky-500">
+    </div>
+  </div>
+
+  <div>
+    <label class="block text-sm mb-1">Secret (خالی = تولید خودکار)</label>
+    <input name="secret" value="{{ suggest_secret }}" dir="ltr"
+           class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 outline-none font-mono text-sm focus:border-sky-500">
+  </div>
+
+  <div>
+    <label class="block text-sm mb-1">تگ کانال اسپانسر (اختیاری)</label>
+    <input name="ad_tag" placeholder="از ربات @MTProxybot دریافت کنید" dir="ltr"
+           class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 outline-none font-mono text-sm focus:border-sky-500">
+    <p class="text-xs text-slate-500 mt-1">برای تبلیغ کانال خود: به @MTProxybot پیام دهید، پروکسی را ثبت کنید و تگ هگز را اینجا بگذارید.</p>
+  </div>
+
+  <div>
+    <label class="block text-sm mb-1">آدرس نمایشی برای کاربران / Front (اختیاری)</label>
+    <input name="front_host" placeholder="مثلاً IP سرور ایرانِ تونل‌شده — خالی = IP همین سرور" dir="ltr"
+           class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 outline-none font-mono text-sm focus:border-emerald-500">
+    <p class="text-xs text-slate-500 mt-1">اگر این پروکسی را از طریق یک تونل (مثل Paqet/KCP) روی یک سرور ایران منتشر می‌کنید، IP سرور ایران را اینجا بگذارید تا لینک کاربران آن آدرس را نشان دهد (نه IP این سرور خارج).</p>
+  </div>
+
+  <!-- Tunneled-only fields -->
+  <div id="f-tunnel" class="hidden grid sm:grid-cols-2 gap-4 border-t border-slate-800 pt-4">
+    <div>
+      <label class="block text-sm mb-1">آدرس سرور خارج (Upstream)</label>
+      <input name="upstream_host" placeholder="1.2.3.4 یا دامنه" dir="ltr"
+             class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 outline-none focus:border-violet-500">
+    </div>
+    <div>
+      <label class="block text-sm mb-1">پورت سرور خارج</label>
+      <input name="upstream_port" type="number" min="1" max="65535" placeholder="443" dir="ltr"
+             class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 outline-none focus:border-violet-500">
+    </div>
+    <p class="sm:col-span-2 text-xs text-slate-500">Secret و دامنه FakeTLS باید دقیقاً با پروکسی سرور خارج یکی باشد.</p>
+  </div>
+
+  <!-- Cloudflare-only fields -->
+  <div id="f-cf" class="hidden grid sm:grid-cols-2 gap-4 border-t border-slate-800 pt-4">
+    <div>
+      <label class="block text-sm mb-1">دامنه edge کلودفلر</label>
+      <input name="cf_domain" placeholder="proxy.example.com" dir="ltr"
+             class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+    </div>
+    <div>
+      <label class="block text-sm mb-1">پورت edge</label>
+      <input name="cf_edge_port" type="number" min="1" max="65535" value="443" dir="ltr"
+             class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+    </div>
+    <p class="sm:col-span-2 text-xs text-amber-400/80">
+      ⚠ نیازمند Cloudflare Spectrum (پلن پولی) است. توکن و Zone ID را در «تنظیمات» وارد کنید تا به‌صورت خودکار ساخته شود.
+    </p>
+  </div>
+
+  <button class="bg-sky-600 hover:bg-sky-500 rounded-lg px-5 py-2.5 font-semibold">ساخت و اجرا</button>
+</form>
+
+<script>
+function onMode() {
+  const m = document.querySelector('input[name=mode]:checked').value;
+  document.getElementById('f-tunnel').classList.toggle('hidden', m !== 'tunneled');
+  document.getElementById('f-cf').classList.toggle('hidden', m !== 'cloudflare');
+}
+onMode();
+</script>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="text-xl font-bold mb-4">تنظیمات</h1>
+
+{% if message %}<p class="bg-emerald-900/50 text-emerald-200 text-sm rounded-lg p-3 mb-4">{{ message }}</p>{% endif %}
+{% if error %}<p class="bg-rose-900/50 text-rose-200 text-sm rounded-lg p-3 mb-4">{{ error }}</p>{% endif %}
+
+<form method="post" action="/settings" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-6 max-w-2xl">
+
+  <div>
+    <h2 class="font-semibold mb-2">سرور</h2>
+    <label class="block text-sm mb-1">IP عمومی سرور (برای ساخت لینک‌ها)</label>
+    <input name="server_public_ip" value="{{ server_public_ip }}" dir="ltr"
+           class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 outline-none focus:border-sky-500">
+  </div>
+
+  <div class="border-t border-slate-800 pt-5">
+    <h2 class="font-semibold mb-2">Cloudflare Spectrum (اختیاری)</h2>
+    <p class="text-xs text-slate-500 mb-3">برای حالت کلودفلر. توکن باید دسترسی ویرایش Spectrum روی Zone را داشته باشد.</p>
+    <label class="block text-sm mb-1">API Token</label>
+    <input name="cf_api_token" value="{{ cf_api_token }}" dir="ltr" type="password"
+           class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 outline-none focus:border-orange-500 mb-3">
+    <label class="block text-sm mb-1">Zone ID</label>
+    <input name="cf_zone_id" value="{{ cf_zone_id }}" dir="ltr"
+           class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+  </div>
+
+  <div class="border-t border-slate-800 pt-5">
+    <h2 class="font-semibold mb-2">تغییر رمز عبور</h2>
+    <div class="grid sm:grid-cols-2 gap-4">
+      <input name="new_password" type="password" placeholder="رمز جدید"
+             class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 outline-none focus:border-sky-500">
+      <input name="new_password2" type="password" placeholder="تکرار رمز جدید"
+             class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 outline-none focus:border-sky-500">
+    </div>
+  </div>
+
+  <button class="bg-sky-600 hover:bg-sky-500 rounded-lg px-5 py-2.5 font-semibold">ذخیره</button>
+</form>
+{% endblock %}

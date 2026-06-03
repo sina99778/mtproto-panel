@@ -1,0 +1,21 @@
+# --- Runtime data & secrets (MUST never be committed) ---
+data/
+*.db
+*.db-wal
+*.db-shm
+panel.env
+*.mmdb
+
+# --- Python ---
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# --- Proxy engine (cloned at install time) ---
+engine/
+
+# --- OS junk ---
+.DS_Store
+Thumbs.db
+*.swp

@@ -1,0 +1,4 @@
+/* Minor tweaks on top of Tailwind CDN. */
+body { font-family: "Vazirmatn", "Segoe UI", Tahoma, system-ui, sans-serif; }
+::selection { background: #0ea5e9; color: #fff; }
+input::placeholder { color: #64748b; }

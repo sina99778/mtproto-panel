@@ -1,0 +1,16 @@
+[Unit]
+Description=MTProto Management Panel (FastAPI)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=__BASE__/data/panel.env
+WorkingDirectory=__BASE__
+ExecStart=__BASE__/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8088 --app-dir __BASE__
+Restart=always
+RestartSec=3
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target

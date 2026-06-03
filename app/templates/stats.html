@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-xl font-bold">آمار و مانیتورینگ</h1>
+  <span class="text-xs text-slate-500">به‌روزرسانی خودکار هر ۱۰ ثانیه</span>
+</div>
+
+<!-- Global totals -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+    <div class="text-slate-400 text-xs">کاربران متصل (آنلاین)</div>
+    <div class="text-2xl font-bold text-sky-400">{{ snap.totals.active }}</div>
+  </div>
+  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+    <div class="text-slate-400 text-xs">کل ترافیک عبوری</div>
+    <div class="text-2xl font-bold text-emerald-400">{{ hb(snap.totals.cum_bytes) }}</div>
+  </div>
+  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+    <div class="text-slate-400 text-xs">تعداد استفاده‌ها (سشن)</div>
+    <div class="text-2xl font-bold text-violet-400">{{ snap.totals.sessions }}</div>
+  </div>
+  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+    <div class="text-slate-400 text-xs">کاربران یکتا</div>
+    <div class="text-2xl font-bold text-amber-400">{{ snap.totals.clients }}</div>
+  </div>
+</div>
+
+<!-- Operator distribution -->
+<div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 mb-6">
+  <h2 class="font-semibold mb-3">اپراتورهای کاربران (بیشترین استفاده)</h2>
+  {% set maxc = (snap.totals.operators[0].c if snap.totals.operators else 1) or 1 %}
+  {% if snap.totals.operators %}
+    <div class="space-y-2">
+    {% for op in snap.totals.operators %}
+      <div class="flex items-center gap-3">
+        <div class="w-40 truncate text-sm">{{ op.operator }}</div>
+        <div class="flex-1 bg-slate-800 rounded-full h-4 overflow-hidden">
+          <div class="bg-sky-500 h-4" style="width: {{ (op.c / maxc * 100) | round(0, 'floor') }}%"></div>
+        </div>
+        <div class="w-12 text-end text-sm text-slate-300">{{ op.c }}</div>
+      </div>
+    {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-slate-500 text-sm">هنوز داده‌ای ثبت نشده، یا کاربران از طریق تونل/localhost می‌رسند (IP واقعی قابل‌مشاهده نیست).</p>
+  {% endif %}
+</div>
+
+<!-- Per-proxy table -->
+<div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+  <h2 class="font-semibold mb-3">به تفکیک پروکسی</h2>
+  <div class="overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead class="text-slate-400 text-xs border-b border-slate-800">
+      <tr>
+        <th class="text-start py-2">پروکسی</th>
+        <th class="text-start py-2">آنلاین</th>
+        <th class="text-start py-2">سرعت لحظه‌ای</th>
+        <th class="text-start py-2">ترافیک کل</th>
+        <th class="text-start py-2">سشن‌ها</th>
+        <th class="text-start py-2">کاربر یکتا</th>
+        <th class="text-start py-2">اپراتور برتر</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in snap.proxies %}
+      <tr class="border-b border-slate-800/50">
+        <td class="py-2 font-medium">{{ p.name }}</td>
+        <td class="py-2 text-sky-300">{{ p.active }}</td>
+        <td class="py-2 text-slate-300">{{ hr(p.rate_bps) }}</td>
+        <td class="py-2 text-emerald-300">{{ hb(p.cum_bytes) }}</td>
+        <td class="py-2 text-violet-300">{{ p.sessions }}</td>
+        <td class="py-2 text-amber-300">{{ p.clients }}</td>
+        <td class="py-2 text-slate-400">{{ p.operators[0].operator if p.operators else '—' }}</td>
+      </tr>
+      {% endfor %}
+      {% if not snap.proxies %}
+      <tr><td colspan="7" class="py-4 text-center text-slate-500">پروکسی‌ای وجود ندارد.</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<script>
+  // Lightweight live refresh.
+  setTimeout(function () { location.reload(); }, 10000);
+</script>
+{% endblock %}
