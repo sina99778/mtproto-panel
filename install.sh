@@ -84,6 +84,21 @@ if [ ! -f "$ASN_DB" ]; then
   [ -f "$ASN_DB" ] || log "دریافت دیتابیس ASN ناموفق بود؛ آمار اپراتور 'نامشخص' می‌ماند (بقیه آمار کار می‌کند)."
 fi
 
+# --- 4c. Front-end assets (self-hosted, resilient to CDN filtering) -------
+log "دریافت دارایی‌های رابط کاربری (Tabler/ApexCharts/QR) برای میزبانی محلی ..."
+VENDOR="$BASE/app/static/vendor"
+mkdir -p "$VENDOR"
+dl() { curl -fsSL "$1" -o "$2" 2>/dev/null && [ -s "$2" ]; }
+dl "https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/css/tabler.rtl.min.css" "$VENDOR/tabler.rtl.min.css" || true
+dl "https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/js/tabler.min.js"       "$VENDOR/tabler.min.js"       || true
+dl "https://cdn.jsdelivr.net/npm/apexcharts@latest/dist/apexcharts.min.js"        "$VENDOR/apexcharts.min.js"   || true
+dl "https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@gh-pages/qrcode.min.js"      "$VENDOR/qrcode.min.js"       || true
+if [ -s "$VENDOR/tabler.rtl.min.css" ]; then
+  log "دارایی‌ها محلی شدند (مستقل از CDN)."
+else
+  log "دانلود دارایی‌ها ناموفق بود؛ پنل از CDN استفاده می‌کند (در صورت فیلتر بودن CDN، ظاهر ساده می‌شود)."
+fi
+
 # --- 5. Network tuning: BBR + sysctl -------------------------------------
 log "اعمال بهینه‌سازی شبکه (BBR + sysctl) ..."
 install -m 0644 "$BASE/sysctl/99-mtproto-panel.conf" /etc/sysctl.d/99-mtproto-panel.conf

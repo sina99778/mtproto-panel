@@ -1,70 +1,106 @@
 {% extends "base.html" %}
 {% block content %}
 
-<!-- Network status banner -->
-<div class="mb-5 flex flex-wrap items-center gap-3 text-sm">
-  <span class="px-3 py-1 rounded-full {{ 'bg-emerald-900/60 text-emerald-300' if nettune.bbr_active else 'bg-amber-900/60 text-amber-300' }}">
-    کنترل ازدحام TCP: {{ nettune.congestion_control }}
-    {% if nettune.bbr_active %} ✓ BBR فعال {% else %} ⚠ BBR غیرفعال {% endif %}
-  </span>
-  <span class="px-3 py-1 rounded-full bg-slate-800 text-slate-300">صف‌بندی: {{ nettune.qdisc }}</span>
-  {% if not ip %}
-  <span class="px-3 py-1 rounded-full bg-rose-900/60 text-rose-300">⚠ IP سرور تنظیم نشده — در «تنظیمات» وارد کنید</span>
-  {% endif %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <div class="page-pretitle">مدیریت</div>
+      <h2 class="page-title">داشبورد</h2>
+    </div>
+    <div class="col-auto ms-auto">
+      <a href="/proxies/new" class="btn btn-primary">➕ پروکسی جدید</a>
+    </div>
+  </div>
 </div>
 
-<div class="flex items-center justify-between mb-4">
-  <h1 class="text-xl font-bold">پروکسی‌های من</h1>
-  <a href="/proxies/new" class="bg-sky-600 hover:bg-sky-500 rounded-lg px-4 py-2 text-sm font-semibold">+ پروکسی جدید</a>
+<!-- Status badges -->
+<div class="mb-3">
+  {% if nettune.bbr_active %}
+    <span class="badge bg-green-lt">کنترل ازدحام TCP: {{ nettune.congestion_control }} ✓ BBR فعال</span>
+  {% else %}
+    <span class="badge bg-yellow-lt">⚠ BBR غیرفعال (فعلی: {{ nettune.congestion_control }})</span>
+  {% endif %}
+  <span class="badge bg-azure-lt">صف‌بندی: {{ nettune.qdisc }}</span>
+  {% if not ip %}<span class="badge bg-red-lt">⚠ IP سرور تنظیم نشده — در «تنظیمات» وارد کنید</span>{% endif %}
 </div>
+
+<!-- Stat tiles -->
+<div class="row row-deck row-cards mb-2">
+  <div class="col-6 col-lg-3">
+    <div class="card card-sm"><div class="card-body"><div class="row align-items-center">
+      <div class="col-auto"><span class="bg-primary text-white avatar">👥</span></div>
+      <div class="col"><div class="h1 mb-0">{{ totals.active }}</div><div class="text-secondary">کاربران آنلاین</div></div>
+    </div></div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card card-sm"><div class="card-body"><div class="row align-items-center">
+      <div class="col-auto"><span class="bg-green text-white avatar">📶</span></div>
+      <div class="col"><div class="h1 mb-0">{{ hb(totals.cum_bytes) }}</div><div class="text-secondary">ترافیک کل</div></div>
+    </div></div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card card-sm"><div class="card-body"><div class="row align-items-center">
+      <div class="col-auto"><span class="bg-purple text-white avatar">🔁</span></div>
+      <div class="col"><div class="h1 mb-0">{{ totals.sessions }}</div><div class="text-secondary">تعداد استفاده‌ها</div></div>
+    </div></div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card card-sm"><div class="card-body"><div class="row align-items-center">
+      <div class="col-auto"><span class="bg-orange text-white avatar">🧍</span></div>
+      <div class="col"><div class="h1 mb-0">{{ totals.clients }}</div><div class="text-secondary">کاربران یکتا</div></div>
+    </div></div></div>
+  </div>
+</div>
+
+<h3 class="mt-4 mb-2">پروکسی‌های من</h3>
 
 {% if not proxies %}
-<div class="bg-slate-900 border border-slate-800 rounded-2xl p-10 text-center text-slate-400">
-  هنوز پروکسی‌ای نساخته‌اید. روی «پروکسی جدید» بزنید.
-</div>
+<div class="card"><div class="empty">
+  <p class="empty-title">هنوز پروکسی‌ای نساخته‌اید</p>
+  <p class="empty-subtitle text-secondary">روی «پروکسی جدید» بزنید تا اولین پروکسی را بسازید.</p>
+  <div class="empty-action"><a href="/proxies/new" class="btn btn-primary">➕ پروکسی جدید</a></div>
+</div></div>
 {% endif %}
 
-<div class="grid gap-4">
+<div class="row row-cards">
+  {% set badge = {'direct':'bg-blue-lt','tunneled':'bg-purple-lt','cloudflare':'bg-orange-lt'} %}
+  {% set label = {'direct':'مستقیم (FakeTLS)','tunneled':'تانل‌شده','cloudflare':'کلودفلر'} %}
   {% for p in proxies %}
-  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-    <div class="flex items-start justify-between gap-3 flex-wrap">
-      <div>
-        <div class="flex items-center gap-2">
-          <h2 class="font-bold text-lg">{{ p.name }}</h2>
-          {% set badge = {'direct':'bg-sky-900/60 text-sky-300','tunneled':'bg-violet-900/60 text-violet-300','cloudflare':'bg-orange-900/60 text-orange-300'} %}
-          {% set label = {'direct':'مستقیم (FakeTLS)','tunneled':'تانل‌شده','cloudflare':'کلودفلر'} %}
-          <span class="text-xs px-2 py-0.5 rounded-full {{ badge[p.mode] }}">{{ label[p.mode] }}</span>
-          <span class="text-xs px-2 py-0.5 rounded-full {{ 'bg-emerald-900/60 text-emerald-300' if p.status=='active' else 'bg-rose-900/60 text-rose-300' }}">
-            {{ 'فعال' if p.status=='active' else p.status }}
-          </span>
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+          <div>
+            <h3 class="card-title mb-1">
+              {{ p.name }}
+              <span class="badge {{ badge[p.mode] }} ms-1">{{ label[p.mode] }}</span>
+              {% if p.status == 'active' %}<span class="badge bg-green-lt">فعال</span>
+              {% else %}<span class="badge bg-red-lt">{{ p.status }}</span>{% endif %}
+            </h3>
+            <div class="text-secondary small">
+              <span dir="ltr">{{ p.host }}:{{ p.link_port }}</span> · FakeTLS: <span dir="ltr">{{ p.tls_domain }}</span>
+              {% if p.ad_tag %} · کانال اسپانسر ✓{% endif %}
+              {% if p.front_host %} · <span class="text-green">تونل‌شده (Front)</span>{% endif %}
+              {% if p.mode == 'tunneled' %} · <span dir="ltr">→ {{ p.upstream_host }}:{{ p.upstream_port }}</span>{% endif %}
+            </div>
+          </div>
+          <div class="btn-list">
+            <form method="post" action="/proxies/{{ p.id }}/toggle">
+              <button class="btn btn-sm {{ 'btn-warning' if p.enabled else 'btn-success' }}">{{ 'توقف' if p.enabled else 'اجرا' }}</button>
+            </form>
+            <form method="post" action="/proxies/{{ p.id }}/delete" onsubmit="return confirm('این پروکسی حذف شود؟')">
+              <button class="btn btn-sm btn-danger">حذف</button>
+            </form>
+          </div>
         </div>
-        <p class="text-slate-400 text-sm mt-1">
-          {{ p.host }}:{{ p.link_port }} · دامنه FakeTLS: <span dir="ltr">{{ p.tls_domain }}</span>
-          {% if p.ad_tag %} · کانال اسپانسر ✓ {% endif %}
-          {% if p.front_host %} · <span class="text-emerald-400">تونل‌شده (Front)</span> {% endif %}
-        </p>
-        {% if p.mode == 'tunneled' %}
-        <p class="text-slate-500 text-xs mt-1" dir="ltr">→ upstream: {{ p.upstream_host }}:{{ p.upstream_port }}</p>
-        {% endif %}
-      </div>
-      <div class="flex items-center gap-2">
-        <form method="post" action="/proxies/{{ p.id }}/toggle">
-          <button class="text-xs rounded-lg px-3 py-1.5 {{ 'bg-amber-700 hover:bg-amber-600' if p.enabled else 'bg-emerald-700 hover:bg-emerald-600' }}">
-            {{ 'توقف' if p.enabled else 'اجرا' }}
-          </button>
-        </form>
-        <form method="post" action="/proxies/{{ p.id }}/delete" onsubmit="return confirm('این پروکسی حذف شود؟')">
-          <button class="text-xs rounded-lg px-3 py-1.5 bg-rose-800 hover:bg-rose-700">حذف</button>
-        </form>
-      </div>
-    </div>
 
-    <div class="mt-4 bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-center gap-2">
-      <input readonly dir="ltr" value="{{ p.tme }}"
-             class="proxy-link flex-1 bg-transparent text-xs text-slate-300 outline-none font-mono truncate">
-      <button onclick="copyFromRow(this)" class="text-xs bg-slate-700 hover:bg-slate-600 rounded-lg px-3 py-1.5">کپی لینک</button>
-      <button onclick="qrFromRow(this)" class="text-xs bg-slate-700 hover:bg-slate-600 rounded-lg px-3 py-1.5">QR</button>
-      <a href="{{ p.tg }}" class="text-xs bg-sky-700 hover:bg-sky-600 rounded-lg px-3 py-1.5">اتصال</a>
+        <div class="input-group mt-3">
+          <input type="text" class="form-control proxy-link font-monospace" dir="ltr" readonly value="{{ p.tme }}">
+          <button class="btn" type="button" onclick="copyFromRow(this)">کپی لینک</button>
+          <button class="btn" type="button" onclick="qrFromRow(this)">QR</button>
+          <a class="btn btn-primary" href="{{ p.tg }}">اتصال</a>
+        </div>
+      </div>
     </div>
   </div>
   {% endfor %}

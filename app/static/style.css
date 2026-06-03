@@ -1,4 +1,9 @@
-/* Minor tweaks on top of Tailwind CDN. */
-body { font-family: "Vazirmatn", "Segoe UI", Tahoma, system-ui, sans-serif; }
-::selection { background: #0ea5e9; color: #fff; }
-input::placeholder { color: #64748b; }
+/* Persian font + minor tweaks on top of Tabler. */
+:root { --tblr-font-sans-serif: "Vazirmatn", "Segoe UI", Tahoma, system-ui, sans-serif; }
+body { font-family: var(--tblr-font-sans-serif); }
+
+/* Keep proxy links readable + LTR inside the RTL layout. */
+.proxy-link { font-size: .8rem; direction: ltr; text-align: left; }
+
+/* Avatars used in stat tiles render emoji a bit larger. */
+.avatar { font-size: 1.1rem; }

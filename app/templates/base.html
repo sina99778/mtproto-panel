@@ -2,38 +2,67 @@
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{% block title %}پنل مدیریت MTProto{% endblock %}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@gh-pages/qrcode.min.js"></script>
+  <link href="{{ TABLER_CSS }}" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen">
-  {% if request.session.get('user') %}
-  <nav class="bg-slate-900/80 border-b border-slate-800 sticky top-0 backdrop-blur z-10">
-    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center gap-4">
-      <a href="/" class="font-bold text-lg text-sky-400">🛡️ پنل MTProto</a>
-      <a href="/" class="hover:text-sky-300">داشبورد</a>
-      <a href="/proxies/new" class="hover:text-sky-300">پروکسی جدید</a>
-      <a href="/stats" class="hover:text-sky-300">آمار</a>
-      <a href="/settings" class="hover:text-sky-300">تنظیمات</a>
-      <span class="ms-auto text-xs text-slate-600">v{{ VERSION }}</span>
-      <a href="/logout" class="text-rose-400 hover:text-rose-300">خروج</a>
+<body>
+{% if request.session.get('user') %}
+<div class="page">
+  <header class="navbar navbar-expand-md navbar-light d-print-none">
+    <div class="container-xl">
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar-menu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <a href="/" class="navbar-brand pe-0 pe-md-3 fw-bold text-primary">
+        🛡️ <span class="ms-1">پنل MTProto</span>
+      </a>
+      <div class="navbar-nav flex-row order-md-last align-items-center">
+        <span class="text-secondary small mx-3 d-none d-md-inline">v{{ VERSION }}</span>
+        <a href="/logout" class="btn btn-outline-danger btn-sm">خروج</a>
+      </div>
+      <div class="collapse navbar-collapse" id="navbar-menu">
+        <ul class="navbar-nav mt-2 mt-md-0">
+          {% set path = request.url.path %}
+          <li class="nav-item {{ 'active' if path == '/' }}"><a class="nav-link" href="/">🏠 داشبورد</a></li>
+          <li class="nav-item {{ 'active' if path.startswith('/proxies') }}"><a class="nav-link" href="/proxies/new">➕ پروکسی جدید</a></li>
+          <li class="nav-item {{ 'active' if path == '/stats' }}"><a class="nav-link" href="/stats">📊 آمار</a></li>
+          <li class="nav-item {{ 'active' if path == '/settings' }}"><a class="nav-link" href="/settings">⚙️ تنظیمات</a></li>
+        </ul>
+      </div>
     </div>
-  </nav>
-  {% endif %}
-  <main class="max-w-5xl mx-auto p-4">
-    {% block content %}{% endblock %}
-  </main>
+  </header>
 
-  <!-- QR modal -->
-  <div id="qr-modal" class="hidden fixed inset-0 bg-black/70 items-center justify-center z-50" onclick="closeQR(event)">
-    <div class="bg-white p-5 rounded-xl text-center">
-      <div id="qrcode" class="flex justify-center"></div>
-      <p class="text-slate-700 text-sm mt-3">برای اسکن با گوشی دیگر</p>
+  <div class="page-wrapper">
+    <div class="page-body">
+      <div class="container-xl">
+        {% block content %}{% endblock %}
+      </div>
     </div>
+    <footer class="footer footer-transparent d-print-none">
+      <div class="container-xl text-center text-secondary small py-3">
+        پنل MTProto · نسخهٔ {{ VERSION }}
+      </div>
+    </footer>
   </div>
+</div>
+{% else %}
+  {% block content_full %}{% endblock %}
+{% endif %}
 
-  <script src="/static/app.js"></script>
+<!-- QR modal (framework-agnostic) -->
+<div id="qr-modal" onclick="closeQR(event)"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1080;align-items:center;justify-content:center;">
+  <div style="background:#fff;padding:20px;border-radius:14px;text-align:center;">
+    <div id="qrcode" style="display:flex;justify-content:center;"></div>
+    <div style="color:#444;font-size:.85rem;margin-top:10px;">برای اسکن با گوشی دیگر</div>
+  </div>
+</div>
+
+<script src="{{ TABLER_JS }}" defer></script>
+<script src="{{ QR_JS }}" defer></script>
+<script src="/static/app.js" defer></script>
+{% block scripts %}{% endblock %}
 </body>
 </html>

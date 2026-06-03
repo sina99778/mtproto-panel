@@ -33,20 +33,20 @@ function fallbackCopy(text, done) {
 }
 
 // QR modal.
-let qrInstance = null;
 function showQR(text) {
   const modal = document.getElementById("qr-modal");
   const holder = document.getElementById("qrcode");
   holder.innerHTML = "";
-  qrInstance = new QRCode(holder, { text: text, width: 240, height: 240 });
-  modal.classList.remove("hidden");
-  modal.classList.add("flex");
+  if (window.QRCode) {
+    new QRCode(holder, { text: text, width: 240, height: 240 });
+  } else {
+    holder.textContent = "کتابخانهٔ QR بارگذاری نشد.";
+  }
+  modal.style.display = "flex";
 }
 
 function closeQR(e) {
   if (e.target.id === "qr-modal") {
-    const modal = document.getElementById("qr-modal");
-    modal.classList.add("hidden");
-    modal.classList.remove("flex");
+    document.getElementById("qr-modal").style.display = "none";
   }
 }

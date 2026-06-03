@@ -49,6 +49,28 @@ app.mount("/static", StaticFiles(directory=str(BASE / "static")), name="static")
 templates = Jinja2Templates(directory=str(BASE / "templates"))
 templates.env.globals["VERSION"] = config.VERSION
 
+# Front-end assets: served locally if vendored on the server (resilient to CDN
+# filtering in Iran), otherwise fall back to a CDN URL.
+_VENDOR = BASE / "static" / "vendor"
+
+
+def _asset(name, cdn):
+    return f"/static/vendor/{name}" if (_VENDOR / name).exists() else cdn
+
+
+templates.env.globals["TABLER_CSS"] = _asset(
+    "tabler.rtl.min.css", "https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/css/tabler.rtl.min.css"
+)
+templates.env.globals["TABLER_JS"] = _asset(
+    "tabler.min.js", "https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/js/tabler.min.js"
+)
+templates.env.globals["APEX_JS"] = _asset(
+    "apexcharts.min.js", "https://cdn.jsdelivr.net/npm/apexcharts@latest/dist/apexcharts.min.js"
+)
+templates.env.globals["QR_JS"] = _asset(
+    "qrcode.min.js", "https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@gh-pages/qrcode.min.js"
+)
+
 
 # --- Auth plumbing --------------------------------------------------------
 class NotAuthenticated(Exception):
@@ -118,9 +140,13 @@ def _build_rows():
 @app.get("/")
 def dashboard(request: Request, _user: str = Depends(require_user)):
     rows, ip = _build_rows()
+    totals = stats.snapshot()["totals"]
     return templates.TemplateResponse(
         "dashboard.html",
-        {"request": request, "proxies": rows, "ip": ip, "nettune": nettune.status()},
+        {
+            "request": request, "proxies": rows, "ip": ip,
+            "nettune": nettune.status(), "totals": totals, "hb": utils.human_bytes,
+        },
     )
 
 
