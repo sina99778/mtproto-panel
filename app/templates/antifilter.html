@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% import "_icons.html" as ic %}
+{% block content %}
+
+<div class="page-header mb-3"><h2 class="page-title">ضدفیلتر / Endpointها</h2></div>
+
+{% if flash %}<div class="alert alert-info">{{ flash }}</div>{% endif %}
+
+<div class="alert alert-secondary">
+  <strong>چطور کار می‌کند:</strong> برای هر پروکسی چند آدرس (IP/دامنه) به‌عنوان endpoint اضافه کن.
+  پنل سلامت‌شان را چک می‌کند و آدرس <span class="badge bg-green-lt">فعال</span> در لینک کاربران استفاده می‌شود.
+  اگر «دامنهٔ مدیریت‌شده» بگذاری و کلودفلر را در تنظیمات وصل کنی، موقع چرخش، رکورد DNS هم خودکار عوض می‌شود.
+  <br><span class="text-secondary small">توجه: فیلترِ واقعیِ ایران از سمت سرور قابل‌تشخیص نیست؛ برای آن از دکمهٔ «تست از ایران» استفاده کن. چرخشِ خودکار فقط روی endpointهای «خاموش» عمل می‌کند.</span>
+  {% if not cf_dns_ready %}<br><span class="text-warning">⚠ توکن/Zone کلودفلر در «تنظیمات» وارد نشده — فِیل‌اوور DNS و Spectrum غیرفعال است.</span>{% endif %}
+</div>
+
+{% if not items %}
+<div class="card"><div class="empty"><p class="empty-title">پروکسی‌ای وجود ندارد</p></div></div>
+{% endif %}
+
+{% for p in items %}
+<div class="card mb-3">
+  <div class="card-header">
+    <h3 class="card-title">{{ p.name }} <span class="text-secondary small">(پورت {{ p.port }})</span></h3>
+    <div class="card-actions">
+      <form method="post" action="/antifilter/{{ p.id }}/rotate" class="d-inline">
+        <button class="btn btn-sm btn-primary">چرخش به سالم بعدی</button>
+      </form>
+    </div>
+  </div>
+  <div class="card-body">
+
+    <!-- Endpoints table -->
+    <div class="table-responsive mb-3">
+      <table class="table table-vcenter">
+        <thead><tr><th>آدرس</th><th>برچسب</th><th>اولویت</th><th>وضعیت</th><th>فعال</th><th></th></tr></thead>
+        <tbody>
+          {% for e in p.endpoints %}
+          <tr>
+            <td dir="ltr" class="font-monospace">{{ e.address }}</td>
+            <td>{{ e.label or '—' }}</td>
+            <td>{{ e.priority }}</td>
+            <td>
+              {% if e.status == 'up' %}<span class="badge bg-green-lt">سالم</span>
+              {% elif e.status == 'down' %}<span class="badge bg-red-lt">خاموش</span>
+              {% else %}<span class="badge bg-secondary-lt">نامشخص</span>{% endif %}
+            </td>
+            <td>{% if e.active %}<span class="badge bg-green text-white">فعال</span>{% endif %}</td>
+            <td class="text-end">
+              <div class="btn-list justify-content-end">
+                {% if not e.active %}
+                <form method="post" action="/antifilter/endpoints/{{ e.id }}/activate"><button class="btn btn-sm">فعال‌کن</button></form>
+                {% endif %}
+                <form method="post" action="/antifilter/endpoints/{{ e.id }}/iran-test"><button class="btn btn-sm btn-outline-azure" title="چند ثانیه طول می‌کشد">تست از ایران</button></form>
+                <form method="post" action="/antifilter/endpoints/{{ e.id }}/delete" onsubmit="return confirm('حذف شود؟')"><button class="btn btn-sm btn-outline-danger">حذف</button></form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+          {% if not p.endpoints %}
+          <tr><td colspan="6" class="text-secondary text-center py-3">هنوز endpointی اضافه نشده — لینک از IP/Front پیش‌فرض استفاده می‌کند.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Add endpoint -->
+    <form method="post" action="/antifilter/{{ p.id }}/endpoints" class="row g-2 align-items-end mb-3">
+      <div class="col-md-5"><label class="form-label">آدرس جدید (IP یا دامنه)</label><input name="address" class="form-control" dir="ltr" placeholder="1.2.3.4" required></div>
+      <div class="col-md-3"><label class="form-label">برچسب</label><input name="label" class="form-control" placeholder="مثلاً ایران-۲"></div>
+      <div class="col-md-2"><label class="form-label">اولویت</label><input name="priority" type="number" class="form-control" value="100"></div>
+      <div class="col-md-2"><button class="btn btn-success w-100">افزودن</button></div>
+    </form>
+
+    <!-- Domain + auto-rotate -->
+    <form method="post" action="/antifilter/{{ p.id }}/domain" class="row g-2 align-items-end border-top pt-3">
+      <div class="col-md-6">
+        <label class="form-label">دامنهٔ مدیریت‌شده (اختیاری — لینک‌ها روی این دامنه می‌روند)</label>
+        <input name="link_domain" class="form-control" dir="ltr" placeholder="proxy.example.com" value="{{ p.link_domain or '' }}">
+      </div>
+      <div class="col-md-4">
+        <label class="form-check mt-3">
+          <input type="checkbox" class="form-check-input" name="auto_rotate" value="1" {{ 'checked' if p.auto_rotate }}>
+          <span class="form-check-label">چرخش خودکار وقتی endpoint فعال خاموش شد</span>
+        </label>
+      </div>
+      <div class="col-md-2"><button class="btn btn-primary w-100">ذخیره</button></div>
+    </form>
+
+    {% if p.mode == 'cloudflare' %}
+    <div class="border-top mt-3 pt-3">
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <span class="text-secondary">Cloudflare Spectrum:</span>
+        {% if p.cf_app_id %}<span class="badge bg-green-lt">فعال (app: {{ p.cf_app_id[:8] }}…)</span>{% else %}<span class="badge bg-secondary-lt">ساخته نشده</span>{% endif %}
+        <form method="post" action="/antifilter/{{ p.id }}/spectrum/recreate" class="d-inline"><button class="btn btn-sm">ساخت/بازسازی</button></form>
+        {% if p.cf_app_id %}<form method="post" action="/antifilter/{{ p.id }}/spectrum/delete" class="d-inline"><button class="btn btn-sm btn-outline-danger">حذف اپ</button></form>{% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

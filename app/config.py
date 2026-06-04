@@ -30,6 +30,10 @@ STATS_ENABLED = os.environ.get("PANEL_STATS_ENABLED", "1") == "1"
 STATS_INTERVAL = int(os.environ.get("PANEL_STATS_INTERVAL", "15"))  # seconds between samples
 ASN_DB_PATH = os.environ.get("PANEL_ASN_DB", str(DATA_DIR / "dbip-asn-lite.mmdb"))
 
+# --- Anti-filter / endpoint failover -------------------------------------
+FAILOVER_ENABLED = os.environ.get("PANEL_FAILOVER_ENABLED", "1") == "1"
+FAILOVER_INTERVAL = int(os.environ.get("PANEL_FAILOVER_INTERVAL", "30"))  # health-check period
+
 # --- Version --------------------------------------------------------------
 try:
     VERSION = (BASE_DIR / "VERSION").read_text(encoding="utf-8").strip() or "dev"

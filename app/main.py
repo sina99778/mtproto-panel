@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import auth, cloudflare, config, database, nettune, proxy_manager, stats, utils
+from . import auth, cloudflare, config, database, failover, nettune, proxy_manager, stats, utils
 
 BASE = Path(__file__).parent
 
@@ -27,15 +27,19 @@ async def lifespan(_app: FastAPI):
         if ip:
             database.set_setting("server_public_ip", ip)
 
-    # Background statistics sampler.
-    sampler = asyncio.create_task(stats.sampler_loop()) if config.STATS_ENABLED else None
+    # Background loops: statistics sampler + endpoint health/failover.
+    tasks = []
+    if config.STATS_ENABLED:
+        tasks.append(asyncio.create_task(stats.sampler_loop()))
+    if config.FAILOVER_ENABLED:
+        tasks.append(asyncio.create_task(failover.failover_loop()))
     try:
         yield
     finally:
-        if sampler:
-            sampler.cancel()
+        for t in tasks:
+            t.cancel()
             try:
-                await sampler
+                await t
             except (asyncio.CancelledError, Exception):
                 pass
 
@@ -121,19 +125,25 @@ def _build_rows():
     statuses = proxy_manager.statuses(proxies)  # one systemctl call for all
     rows = []
     for p in proxies:
-        # Cloudflare clients must connect to the EDGE hostname:port, not the origin.
+        active_ep = database.get_active_endpoint(p["id"])
+        # Host precedence for the user-facing link:
         if p["mode"] == "cloudflare" and p["cf_domain"]:
-            host = p["cf_domain"]
+            host = p["cf_domain"]                       # Spectrum edge
             link_port = p["cf_edge_port"] or 443
+        elif p.get("link_domain"):
+            host = p["link_domain"]                      # managed domain (DNS failover)
+            link_port = p["port"]
+        elif active_ep:
+            host = active_ep["address"]                  # active rotation endpoint
+            link_port = p["port"]
         else:
-            # front_host (e.g. an Iran server fronting this proxy through a Paqet/KCP
-            # tunnel) overrides the origin IP in the user-facing link.
-            host = p.get("front_host") or ip
+            host = p.get("front_host") or ip             # tunnel front / origin IP
             link_port = p["port"]
         links = utils.build_links(host or "SERVER_IP", link_port, p["secret"], p["tls_domain"])
-        rows.append(
-            {**p, "host": host, "link_port": link_port, "status": statuses.get(p["id"], "unknown"), **links}
-        )
+        rows.append({
+            **p, "host": host, "link_port": link_port,
+            "status": statuses.get(p["id"], "unknown"), "active_endpoint": active_ep, **links,
+        })
     return rows, ip
 
 
@@ -351,3 +361,119 @@ def stats_api(_user: str = Depends(require_user)):
 @app.get("/api/series")
 def series_api(_user: str = Depends(require_user)):
     return JSONResponse(stats.series())
+
+
+# --- Anti-filter: endpoints, rotation, DNS failover ----------------------
+@app.get("/antifilter")
+def antifilter_page(request: Request, _user: str = Depends(require_user)):
+    items = [{**p, "endpoints": database.list_endpoints(p["id"])} for p in database.list_proxies()]
+    ctx = {
+        "request": request,
+        "items": items,
+        "cf_dns_ready": bool(database.get_setting("cf_api_token") and database.get_setting("cf_zone_id")),
+        "flash": request.session.pop("flash", None),
+    }
+    return templates.TemplateResponse("antifilter.html", ctx)
+
+
+@app.post("/antifilter/{pid}/endpoints")
+def add_endpoint(pid: int, request: Request, _user: str = Depends(require_user),
+                 address: str = Form(...), label: str = Form(""), priority: str = Form("100")):
+    if not database.get_proxy(pid):
+        return RedirectResponse("/antifilter", status_code=303)
+    if not utils.valid_host(address):
+        request.session["flash"] = "آدرس endpoint نامعتبر است (IP یا دامنه)."
+    else:
+        pr = int(priority) if priority.strip().isdigit() else 100
+        database.add_endpoint(pid, address.strip(), label.strip() or None, pr)
+    return RedirectResponse("/antifilter", status_code=303)
+
+
+@app.post("/antifilter/endpoints/{eid}/delete")
+def del_endpoint(eid: int, _user: str = Depends(require_user)):
+    database.delete_endpoint(eid)
+    return RedirectResponse("/antifilter", status_code=303)
+
+
+@app.post("/antifilter/endpoints/{eid}/activate")
+def activate_endpoint(eid: int, request: Request, _user: str = Depends(require_user)):
+    ep = database.get_endpoint(eid)
+    if ep:
+        failover.rotate(ep["proxy_id"], prefer_id=eid)
+        request.session["flash"] = f"endpoint فعال شد: {ep['address']}"
+    return RedirectResponse("/antifilter", status_code=303)
+
+
+@app.post("/antifilter/{pid}/rotate")
+def rotate_proxy(pid: int, request: Request, _user: str = Depends(require_user)):
+    tgt = failover.rotate(pid)
+    request.session["flash"] = (f"چرخش انجام شد → {tgt['address']}" if tgt else "endpoint سالمی برای چرخش نبود.")
+    return RedirectResponse("/antifilter", status_code=303)
+
+
+@app.post("/antifilter/{pid}/domain")
+def set_domain(pid: int, request: Request, _user: str = Depends(require_user),
+               link_domain: str = Form(""), auto_rotate: str = Form("")):
+    d = link_domain.strip()
+    if d and not utils.valid_domain(d):
+        request.session["flash"] = "دامنه نامعتبر است."
+        return RedirectResponse("/antifilter", status_code=303)
+    database.set_link_domain(pid, d or None)
+    database.set_auto_rotate(pid, bool(auto_rotate))
+    # Point the domain at the current active endpoint right away.
+    proxy = database.get_proxy(pid)
+    active = database.get_active_endpoint(pid)
+    if d and active:
+        ok, _ = failover.sync_dns(proxy, active)
+        request.session["flash"] = "دامنه ذخیره شد و DNS به‌روزرسانی شد." if ok else "دامنه ذخیره شد (به‌روزرسانی DNS انجام نشد — تنظیمات کلودفلر را چک کن)."
+    else:
+        request.session["flash"] = "ذخیره شد."
+    return RedirectResponse("/antifilter", status_code=303)
+
+
+@app.post("/antifilter/endpoints/{eid}/iran-test")
+def iran_test_endpoint(eid: int, request: Request, _user: str = Depends(require_user)):
+    ep = database.get_endpoint(eid)
+    if ep:
+        proxy = database.get_proxy(ep["proxy_id"])
+        res = failover.iran_test(ep["address"], proxy["port"])
+        if res["ok"]:
+            request.session["flash"] = (
+                f"تست از ایران برای {ep['address']}: {res['reachable']} از {res['total']} نود ایرانی وصل شدند"
+                + (" ✅" if res["reachable"] else " ❌ (احتمالاً فیلتر/خاموش)")
+            )
+        else:
+            request.session["flash"] = f"تست از ایران ناموفق بود: {res['error']}"
+    return RedirectResponse("/antifilter", status_code=303)
+
+
+@app.post("/antifilter/{pid}/spectrum/recreate")
+def spectrum_recreate(pid: int, request: Request, _user: str = Depends(require_user)):
+    p = database.get_proxy(pid)
+    token = database.get_setting("cf_api_token")
+    zone = database.get_setting("cf_zone_id")
+    origin_ip = database.get_setting("server_public_ip")
+    if p and p["mode"] == "cloudflare" and p["cf_domain"] and token and zone and origin_ip:
+        ok, detail = cloudflare.create_spectrum_app(
+            token, zone, p["cf_domain"], p["cf_edge_port"], origin_ip, p["port"]
+        )
+        if ok:
+            app_id = (detail.get("result") or {}).get("id")
+            if app_id:
+                database.set_cf_app_id(pid, app_id)
+        request.session["flash"] = "اپ Spectrum ساخته شد." if ok else f"ساخت Spectrum ناموفق: {detail}"
+    else:
+        request.session["flash"] = "برای Spectrum: پروکسی باید حالت کلودفلر باشد و توکن/Zone/IP تنظیم شده باشند."
+    return RedirectResponse("/antifilter", status_code=303)
+
+
+@app.post("/antifilter/{pid}/spectrum/delete")
+def spectrum_delete(pid: int, request: Request, _user: str = Depends(require_user)):
+    p = database.get_proxy(pid)
+    token = database.get_setting("cf_api_token")
+    zone = database.get_setting("cf_zone_id")
+    if p and p.get("cf_app_id") and token and zone:
+        cloudflare.delete_spectrum_app(token, zone, p["cf_app_id"])
+        database.set_cf_app_id(pid, None)
+        request.session["flash"] = "اپ Spectrum حذف شد."
+    return RedirectResponse("/antifilter", status_code=303)

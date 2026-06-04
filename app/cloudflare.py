@@ -52,6 +52,30 @@ def delete_spectrum_app(token, zone_id, app_id):
         return False, str(e)
 
 
+def set_dns_a(token, zone_id, name, ip, ttl=60):
+    """Upsert an A record name -> ip (Cloudflare DNS, free). Used for IP failover.
+    Returns (ok, detail)."""
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    body = {"type": "A", "name": name, "content": ip, "ttl": int(ttl), "proxied": False}
+    try:
+        # Find an existing A record with this name.
+        r = httpx.get(
+            f"{API}/zones/{zone_id}/dns_records",
+            params={"type": "A", "name": name}, headers=headers, timeout=20,
+        )
+        data = r.json()
+        records = data.get("result") or []
+        if records:
+            rid = records[0]["id"]
+            r = httpx.put(f"{API}/zones/{zone_id}/dns_records/{rid}", json=body, headers=headers, timeout=20)
+        else:
+            r = httpx.post(f"{API}/zones/{zone_id}/dns_records", json=body, headers=headers, timeout=20)
+        data = r.json()
+        return bool(data.get("success")), data
+    except Exception as e:
+        return False, str(e)
+
+
 def verify_token(token):
     """Quick credential check. Returns (ok, detail)."""
     try:

@@ -28,6 +28,7 @@ os.environ.update(
     PANEL_ADMIN_USER="admin",
     PANEL_ADMIN_PASSWORD="initpass123",
     PANEL_STATS_ENABLED="0",
+    PANEL_FAILOVER_ENABLED="0",
     PANEL_VENV_PYTHON="/opt/mtproto-panel/venv/bin/python3",
     PANEL_ENGINE_SCRIPT="/opt/mtproto-panel/engine/mtprotoproxy/mtprotoproxy.py",
     PANEL_RELAY_SCRIPT="/opt/mtproto-panel/app/relay.py",
@@ -156,6 +157,26 @@ with TestClient(main.app) as c:
     r = c.post("/proxies", data={"name": "bad", "mode": "direct", "port": "5444",
                                  "front_host": "1.2.3.4 evil"}, follow_redirects=False)
     check("invalid front_host rejected (400)", r.status_code == 400)
+
+    print("[antifilter: endpoints + link precedence + rotate]")
+    r = c.post("/proxies", data={"name": "AF", "mode": "direct", "port": "8499",
+                                 "secret": "473ce5d4958eb5f968c87680a23854a0"}, follow_redirects=False)
+    afp = [x for x in database.list_proxies() if x["port"] == 8499][0]
+    r = c.get("/antifilter")
+    check("antifilter page renders", r.status_code == 200 and "Endpoint" in r.text)
+    c.post(f"/antifilter/{afp['id']}/endpoints", data={"address": "9.8.7.6", "label": "ir1", "priority": "10"},
+           follow_redirects=False)
+    check("endpoint added + auto-active", len(database.list_endpoints(afp["id"])) == 1)
+    page = html.unescape(c.get("/").text)
+    check("link uses active endpoint IP", "server=9.8.7.6&port=8499&secret=ee" in page)
+    c.post(f"/antifilter/{afp['id']}/endpoints", data={"address": "5.4.3.2", "label": "ir2", "priority": "5"})
+    e2 = [e for e in database.list_endpoints(afp["id"]) if e["address"] == "5.4.3.2"][0]
+    c.post(f"/antifilter/endpoints/{e2['id']}/activate", follow_redirects=False)
+    check("activate switches active endpoint", database.get_active_endpoint(afp["id"])["address"] == "5.4.3.2")
+    page = html.unescape(c.get("/").text)
+    check("link follows the rotated endpoint", "server=5.4.3.2&port=8499" in page)
+    c.post(f"/antifilter/endpoints/{e2['id']}/delete", follow_redirects=False)
+    check("endpoint delete works", all(e["address"] != "5.4.3.2" for e in database.list_endpoints(afp["id"])))
 
     print("[validation: bad port -> friendly 400, not 422]")
     r = c.post("/proxies", data={"name": "bad", "mode": "direct", "port": "99999"}, follow_redirects=False)

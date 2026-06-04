@@ -61,6 +61,18 @@ CREATE TABLE IF NOT EXISTS clients (
     last_seen  INTEGER,
     PRIMARY KEY (proxy_id, ip)
 );
+
+CREATE TABLE IF NOT EXISTS endpoints (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    proxy_id     INTEGER NOT NULL,
+    address      TEXT NOT NULL,                 -- IP or hostname users connect to
+    label        TEXT,
+    priority     INTEGER NOT NULL DEFAULT 100,  -- lower = preferred
+    status       TEXT NOT NULL DEFAULT 'unknown', -- up | down | unknown
+    active       INTEGER NOT NULL DEFAULT 0,
+    last_checked INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_endpoints_proxy ON endpoints(proxy_id);
 """
 
 
@@ -70,6 +82,8 @@ def _migrate(db):
     migrations = (
         ("cf_app_id", "ALTER TABLE proxies ADD COLUMN cf_app_id TEXT"),
         ("front_host", "ALTER TABLE proxies ADD COLUMN front_host TEXT"),
+        ("link_domain", "ALTER TABLE proxies ADD COLUMN link_domain TEXT"),
+        ("auto_rotate", "ALTER TABLE proxies ADD COLUMN auto_rotate INTEGER NOT NULL DEFAULT 0"),
     )
     for name, ddl in migrations:
         if name not in cols:
@@ -184,12 +198,82 @@ def set_cf_app_id(pid, app_id):
         db.execute("UPDATE proxies SET cf_app_id=? WHERE id=?", (app_id, pid))
 
 
+def set_link_domain(pid, domain):
+    with get_db() as db:
+        db.execute("UPDATE proxies SET link_domain=? WHERE id=?", (domain or None, pid))
+
+
+def set_auto_rotate(pid, enabled):
+    with get_db() as db:
+        db.execute("UPDATE proxies SET auto_rotate=? WHERE id=?", (1 if enabled else 0, pid))
+
+
 def delete_proxy(pid):
     with get_db() as db:
         db.execute("DELETE FROM proxies WHERE id=?", (pid,))
         db.execute("DELETE FROM proxy_stats WHERE proxy_id=?", (pid,))
         db.execute("DELETE FROM stats_samples WHERE proxy_id=?", (pid,))
         db.execute("DELETE FROM clients WHERE proxy_id=?", (pid,))
+        db.execute("DELETE FROM endpoints WHERE proxy_id=?", (pid,))
+
+
+# --- Endpoints (multi-IP failover) ---------------------------------------
+def add_endpoint(proxy_id, address, label=None, priority=100):
+    with get_db() as db:
+        cur = db.execute(
+            "INSERT INTO endpoints(proxy_id, address, label, priority) VALUES (?,?,?,?)",
+            (proxy_id, address, label, int(priority)),
+        )
+        eid = cur.lastrowid
+        # First endpoint for a proxy becomes active automatically.
+        n = db.execute("SELECT COUNT(*) c FROM endpoints WHERE proxy_id=?", (proxy_id,)).fetchone()["c"]
+        if n == 1:
+            db.execute("UPDATE endpoints SET active=1 WHERE id=?", (eid,))
+        return eid
+
+
+def list_endpoints(proxy_id):
+    with get_db() as db:
+        return [_row(r) for r in db.execute(
+            "SELECT * FROM endpoints WHERE proxy_id=? ORDER BY priority, id", (proxy_id,)
+        ).fetchall()]
+
+
+def get_endpoint(eid):
+    with get_db() as db:
+        return _row(db.execute("SELECT * FROM endpoints WHERE id=?", (eid,)).fetchone())
+
+
+def get_active_endpoint(proxy_id):
+    with get_db() as db:
+        return _row(db.execute(
+            "SELECT * FROM endpoints WHERE proxy_id=? AND active=1 LIMIT 1", (proxy_id,)
+        ).fetchone())
+
+
+def set_active_endpoint(proxy_id, eid):
+    with get_db() as db:
+        db.execute("UPDATE endpoints SET active=0 WHERE proxy_id=?", (proxy_id,))
+        db.execute("UPDATE endpoints SET active=1 WHERE id=? AND proxy_id=?", (eid, proxy_id))
+
+
+def update_endpoint_status(eid, status, ts):
+    with get_db() as db:
+        db.execute("UPDATE endpoints SET status=?, last_checked=? WHERE id=?", (status, int(ts), eid))
+
+
+def delete_endpoint(eid):
+    with get_db() as db:
+        db.execute("DELETE FROM endpoints WHERE id=?", (eid,))
+
+
+def all_endpoints_for_checks():
+    """Join endpoints with their enabled proxy's port for the health loop."""
+    with get_db() as db:
+        return [_row(r) for r in db.execute(
+            "SELECT e.*, p.port AS port, p.enabled AS proxy_enabled "
+            "FROM endpoints e JOIN proxies p ON p.id = e.proxy_id"
+        ).fetchall()]
 
 
 # --- Statistics -----------------------------------------------------------
