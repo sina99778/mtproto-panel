@@ -185,6 +185,22 @@ def snapshot():
     return {"proxies": rows, "totals": totals}
 
 
+def series(limit=120):
+    """Aggregated time series for the dashboard charts: active users and
+    throughput (bytes/sec) over the most recent samples."""
+    rows = database.aggregate_series(limit)
+    points = []
+    prev = None
+    for r in rows:
+        rate = 0.0
+        if prev is not None:
+            dt = (r["ts"] - prev["ts"]) or 1
+            rate = max(0.0, (r["cum"] - prev["cum"]) / dt)
+        points.append({"t": int(r["ts"]) * 1000, "active": r["active"], "rate": round(rate, 1)})
+        prev = r
+    return {"points": points}
+
+
 # --- background loop ------------------------------------------------------
 async def sampler_loop():
     loop = asyncio.get_running_loop()

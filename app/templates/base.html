@@ -4,37 +4,65 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{% block title %}پنل مدیریت MTProto{% endblock %}</title>
+  <script>
+    // Apply saved theme before paint to avoid a flash.
+    (function () { try { var t = localStorage.getItem('theme'); if (t) document.documentElement.setAttribute('data-bs-theme', t); } catch (e) {} })();
+  </script>
   <link href="{{ TABLER_CSS }}" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+{% import "_icons.html" as ic %}
+{% set path = request.url.path %}
 {% if request.session.get('user') %}
 <div class="page">
-  <header class="navbar navbar-expand-md navbar-light d-print-none">
-    <div class="container-xl">
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar-menu">
+  <!-- Sidebar -->
+  <aside class="navbar navbar-vertical navbar-expand-lg" data-bs-theme="dark">
+    <div class="container-fluid">
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar-menu">
         <span class="navbar-toggler-icon"></span>
       </button>
-      <a href="/" class="navbar-brand pe-0 pe-md-3 fw-bold text-primary">
-        🛡️ <span class="ms-1">پنل MTProto</span>
+      <a href="/" class="navbar-brand mb-3 mt-1 fw-bold fs-3 text-white d-flex align-items-center gap-2">
+        {{ ic.icon('shield') }} پنل MTProto
       </a>
-      <div class="navbar-nav flex-row order-md-last align-items-center">
-        <span class="text-secondary small mx-3 d-none d-md-inline">v{{ VERSION }}</span>
-        <a href="/logout" class="btn btn-outline-danger btn-sm">خروج</a>
-      </div>
-      <div class="collapse navbar-collapse" id="navbar-menu">
-        <ul class="navbar-nav mt-2 mt-md-0">
-          {% set path = request.url.path %}
-          <li class="nav-item {{ 'active' if path == '/' }}"><a class="nav-link" href="/">🏠 داشبورد</a></li>
-          <li class="nav-item {{ 'active' if path.startswith('/proxies') }}"><a class="nav-link" href="/proxies/new">➕ پروکسی جدید</a></li>
-          <li class="nav-item {{ 'active' if path == '/stats' }}"><a class="nav-link" href="/stats">📊 آمار</a></li>
-          <li class="nav-item {{ 'active' if path == '/settings' }}"><a class="nav-link" href="/settings">⚙️ تنظیمات</a></li>
+      <div class="collapse navbar-collapse" id="sidebar-menu">
+        <ul class="navbar-nav pt-lg-2">
+          <li class="nav-item {{ 'active' if path == '/' }}">
+            <a class="nav-link" href="/"><span class="nav-link-icon">{{ ic.icon('home') }}</span><span class="nav-link-title">داشبورد</span></a>
+          </li>
+          <li class="nav-item {{ 'active' if path.startswith('/proxies') }}">
+            <a class="nav-link" href="/proxies/new"><span class="nav-link-icon">{{ ic.icon('plus') }}</span><span class="nav-link-title">پروکسی جدید</span></a>
+          </li>
+          <li class="nav-item {{ 'active' if path == '/stats' }}">
+            <a class="nav-link" href="/stats"><span class="nav-link-icon">{{ ic.icon('chart') }}</span><span class="nav-link-title">آمار و مانیتورینگ</span></a>
+          </li>
+          <li class="nav-item {{ 'active' if path == '/settings' }}">
+            <a class="nav-link" href="/settings"><span class="nav-link-icon">{{ ic.icon('settings') }}</span><span class="nav-link-title">تنظیمات</span></a>
+          </li>
         </ul>
+        <div class="mt-auto pb-3 text-center">
+          <span class="badge bg-cyan-lt">نسخه {{ VERSION }}</span>
+        </div>
       </div>
     </div>
-  </header>
+  </aside>
 
   <div class="page-wrapper">
+    <!-- Top bar -->
+    <header class="navbar navbar-expand-md d-print-none sticky-top">
+      <div class="container-xl">
+        <div class="navbar-nav flex-row order-md-last align-items-center gap-1 ms-auto">
+          <button class="btn btn-icon btn-ghost-secondary" onclick="toggleTheme()" title="حالت تیره/روشن" aria-label="theme">
+            <span class="theme-dark">{{ ic.icon('moon') }}</span>
+            <span class="theme-light">{{ ic.icon('sun') }}</span>
+          </button>
+          <a href="/logout" class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1">
+            {{ ic.icon('logout') }} <span class="d-none d-sm-inline">خروج</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
     <div class="page-body">
       <div class="container-xl">
         {% block content %}{% endblock %}
@@ -51,7 +79,7 @@
   {% block content_full %}{% endblock %}
 {% endif %}
 
-<!-- QR modal (framework-agnostic) -->
+<!-- QR modal -->
 <div id="qr-modal" onclick="closeQR(event)"
      style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1080;align-items:center;justify-content:center;">
   <div style="background:#fff;padding:20px;border-radius:14px;text-align:center;">

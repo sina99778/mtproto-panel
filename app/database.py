@@ -283,3 +283,15 @@ def clients_count(pid=None):
         else:
             r = db.execute("SELECT COUNT(DISTINCT ip) c FROM clients WHERE proxy_id=?", (pid,)).fetchone()
         return r["c"]
+
+
+def aggregate_series(limit=120):
+    """Time series across all proxies, grouped by sample timestamp (ascending).
+    collect_once uses one timestamp per cycle, so SUM-by-ts is well defined."""
+    with get_db() as db:
+        rows = db.execute(
+            "SELECT ts, SUM(active) active, SUM(cum_bytes) cum "
+            "FROM stats_samples GROUP BY ts ORDER BY ts DESC LIMIT ?",
+            (int(limit),),
+        ).fetchall()
+        return [_row(r) for r in reversed(rows)]

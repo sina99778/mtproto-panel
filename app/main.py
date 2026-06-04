@@ -346,3 +346,8 @@ def stats_page(request: Request, _user: str = Depends(require_user)):
 @app.get("/api/stats")
 def stats_api(_user: str = Depends(require_user)):
     return JSONResponse(stats.snapshot())
+
+
+@app.get("/api/series")
+def series_api(_user: str = Depends(require_user)):
+    return JSONResponse(stats.series())

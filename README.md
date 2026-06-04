@@ -181,8 +181,8 @@ mtproto-panel/
     ├── nettune.py                 # خواندن وضعیت BBR
     ├── stats.py                   # جمع‌آوری آمار (ss + دلتای بایت + سشن)
     ├── geoip.py                   # تشخیص اپراتور از روی ASN (آفلاین)
-    ├── templates/                 # base / login / dashboard / proxy_new / settings / stats
-    └── static/                    # app.js (کپی/QR) + style.css
+    ├── templates/                 # base(sidebar+dark) / login / dashboard / proxy_new / settings / stats / _icons
+    └── static/                    # app.js (کپی/QR/تم) + charts.js (نمودار زنده) + style.css
 └── tests/
     ├── test_app.py                # تست یکپارچه‌ی کل اپ (۳۴ بررسی، systemctl ماک‌شده)
     ├── test_stats.py              # تست آمار (parser ss، دلتای بایت، اپراتور)

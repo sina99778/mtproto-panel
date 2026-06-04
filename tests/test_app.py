@@ -177,6 +177,8 @@ with TestClient(main.app) as c:
     check("stats page renders", r.status_code == 200 and "آمار و مانیتورینگ" in r.text)
     r = c.get("/api/stats")
     check("stats api returns json with totals", r.status_code == 200 and "totals" in r.json())
+    r = c.get("/api/series")
+    check("series api returns points array", r.status_code == 200 and "points" in r.json())
 
     print("[settings + password change]")
     r = c.post("/settings", data={"server_public_ip": "203.0.113.9", "cf_api_token": "",

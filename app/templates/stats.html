@@ -1,69 +1,55 @@
 {% extends "base.html" %}
+{% import "_icons.html" as ic %}
 {% block content %}
 
 <div class="page-header mb-3">
   <div class="row align-items-center">
     <div class="col"><h2 class="page-title">آمار و مانیتورینگ</h2></div>
-    <div class="col-auto text-secondary small">به‌روزرسانی خودکار هر ۱۰ ثانیه</div>
+    <div class="col-auto text-secondary small">به‌روزرسانی زنده هر ۱۵ ثانیه</div>
   </div>
 </div>
 
-<!-- Stat tiles -->
 <div class="row row-deck row-cards mb-3">
-  <div class="col-6 col-lg-3">
-    <div class="card card-sm"><div class="card-body"><div class="row align-items-center">
-      <div class="col-auto"><span class="bg-primary text-white avatar">👥</span></div>
-      <div class="col"><div class="h1 mb-0">{{ snap.totals.active }}</div><div class="text-secondary">کاربران آنلاین</div></div>
-    </div></div></div>
-  </div>
-  <div class="col-6 col-lg-3">
-    <div class="card card-sm"><div class="card-body"><div class="row align-items-center">
-      <div class="col-auto"><span class="bg-green text-white avatar">📶</span></div>
-      <div class="col"><div class="h1 mb-0">{{ hb(snap.totals.cum_bytes) }}</div><div class="text-secondary">کل ترافیک عبوری</div></div>
-    </div></div></div>
-  </div>
-  <div class="col-6 col-lg-3">
-    <div class="card card-sm"><div class="card-body"><div class="row align-items-center">
-      <div class="col-auto"><span class="bg-purple text-white avatar">🔁</span></div>
-      <div class="col"><div class="h1 mb-0">{{ snap.totals.sessions }}</div><div class="text-secondary">تعداد استفاده‌ها</div></div>
-    </div></div></div>
-  </div>
-  <div class="col-6 col-lg-3">
-    <div class="card card-sm"><div class="card-body"><div class="row align-items-center">
-      <div class="col-auto"><span class="bg-orange text-white avatar">🧍</span></div>
-      <div class="col"><div class="h1 mb-0">{{ snap.totals.clients }}</div><div class="text-secondary">کاربران یکتا</div></div>
-    </div></div></div>
-  </div>
+  <div class="col-6 col-lg-3"><div class="card card-sm"><div class="card-body"><div class="row align-items-center">
+    <div class="col-auto"><span class="bg-primary-lt avatar">{{ ic.icon('users','text-primary') }}</span></div>
+    <div class="col"><div class="h1 m-0" id="tile-active">{{ snap.totals.active }}</div><div class="text-secondary">کاربران آنلاین</div></div>
+  </div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card card-sm"><div class="card-body"><div class="row align-items-center">
+    <div class="col-auto"><span class="bg-green-lt avatar">{{ ic.icon('traffic','text-green') }}</span></div>
+    <div class="col"><div class="h1 m-0" id="tile-traffic">{{ hb(snap.totals.cum_bytes) }}</div><div class="text-secondary">کل ترافیک</div></div>
+  </div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card card-sm"><div class="card-body"><div class="row align-items-center">
+    <div class="col-auto"><span class="bg-purple-lt avatar">{{ ic.icon('device','text-purple') }}</span></div>
+    <div class="col"><div class="h1 m-0" id="tile-sessions">{{ snap.totals.sessions }}</div><div class="text-secondary">استفاده‌ها</div></div>
+  </div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card card-sm"><div class="card-body"><div class="row align-items-center">
+    <div class="col-auto"><span class="bg-orange-lt avatar">{{ ic.icon('world','text-orange') }}</span></div>
+    <div class="col"><div class="h1 m-0" id="tile-clients">{{ snap.totals.clients }}</div><div class="text-secondary">کاربران یکتا</div></div>
+  </div></div></div></div>
 </div>
 
 <div class="row row-cards">
-  <!-- Operator donut -->
   <div class="col-lg-5">
     <div class="card">
       <div class="card-header"><h3 class="card-title">اپراتورهای کاربران</h3></div>
       <div class="card-body">
-        {% if snap.totals.operators %}
-          <div id="chart-ops"></div>
-        {% else %}
-          <p class="text-secondary mb-0">هنوز داده‌ای ثبت نشده، یا کاربران از طریق تونل/localhost می‌رسند (IP واقعی قابل‌مشاهده نیست).</p>
-        {% endif %}
+        <div id="chart-ops" style="min-height:280px"></div>
+        <div id="ops-empty" class="text-secondary {{ '' if not snap.totals.operators else 'd-none' }}">
+          هنوز داده‌ای ثبت نشده، یا کاربران از طریق تونل/localhost می‌رسند (IP واقعی قابل‌مشاهده نیست).
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Per-proxy table -->
   <div class="col-lg-7">
     <div class="card">
       <div class="card-header"><h3 class="card-title">به تفکیک پروکسی</h3></div>
       <div class="table-responsive">
         <table class="table table-vcenter card-table">
-          <thead>
-            <tr>
-              <th>پروکسی</th><th>آنلاین</th><th>سرعت</th><th>ترافیک</th>
-              <th>سشن</th><th>یکتا</th><th>اپراتور برتر</th>
-            </tr>
-          </thead>
-          <tbody>
+          <thead><tr>
+            <th>پروکسی</th><th>آنلاین</th><th>سرعت</th><th>ترافیک</th><th>سشن</th><th>یکتا</th><th>اپراتور برتر</th>
+          </tr></thead>
+          <tbody id="proxy-rows">
             {% for p in snap.proxies %}
             <tr>
               <td class="fw-bold">{{ p.name }}</td>
@@ -88,22 +74,6 @@
 
 {% block scripts %}
 <script src="{{ APEX_JS }}" defer></script>
-<script>
-  var opData = {{ snap.totals.operators | tojson }};
-  function initOps() {
-    var el = document.getElementById('chart-ops');
-    if (!el || !window.ApexCharts || !opData.length) return;
-    new ApexCharts(el, {
-      chart: { type: 'donut', height: 300, fontFamily: 'inherit' },
-      series: opData.map(function (o) { return o.c; }),
-      labels: opData.map(function (o) { return o.operator; }),
-      legend: { position: 'bottom' },
-      tooltip: { y: { formatter: function (v) { return v + ' کاربر'; } } }
-    }).render();
-  }
-  // ApexCharts loads with defer; wait for it.
-  window.addEventListener('load', initOps);
-  // Live refresh.
-  setTimeout(function () { location.reload(); }, 10000);
-</script>
+<script src="/static/charts.js" defer></script>
+<script>window.addEventListener('load', function(){ if(window.initStats) initStats(); });</script>
 {% endblock %}

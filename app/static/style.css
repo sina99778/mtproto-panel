@@ -1,9 +1,16 @@
-/* Persian font + minor tweaks on top of Tabler. */
+/* Persian font + tweaks on top of Tabler. */
 :root { --tblr-font-sans-serif: "Vazirmatn", "Segoe UI", Tahoma, system-ui, sans-serif; }
 body { font-family: var(--tblr-font-sans-serif); }
 
-/* Keep proxy links readable + LTR inside the RTL layout. */
+/* Proxy links stay LTR + monospace inside the RTL layout. */
 .proxy-link { font-size: .8rem; direction: ltr; text-align: left; }
 
-/* Avatars used in stat tiles render emoji a bit larger. */
-.avatar { font-size: 1.1rem; }
+/* Theme-toggle icon: show moon in light mode, sun in dark mode. */
+.theme-light { display: none; }
+[data-bs-theme="dark"] .theme-light { display: inline-flex; }
+[data-bs-theme="dark"] .theme-dark { display: none; }
+
+/* Make SVG icons inherit a consistent stroke size. */
+.icon { width: 1.25rem; height: 1.25rem; vertical-align: middle; }
+.avatar .icon { width: 1.4rem; height: 1.4rem; }
+.navbar-brand .icon { width: 1.6rem; height: 1.6rem; }

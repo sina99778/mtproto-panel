@@ -1,3 +1,11 @@
+// Dark / light theme toggle (persisted in localStorage; Tabler reads data-bs-theme).
+function toggleTheme() {
+  var html = document.documentElement;
+  var next = html.getAttribute("data-bs-theme") === "dark" ? "light" : "dark";
+  html.setAttribute("data-bs-theme", next);
+  try { localStorage.setItem("theme", next); } catch (e) {}
+}
+
 // Read the proxy link from the row's input. Using input.value (instead of an
 // inline template string) avoids HTML-entity corruption of '&' -> '&amp;'.
 function rowLink(btn) {

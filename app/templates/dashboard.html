@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_icons.html" as ic %}
 {% block content %}
 
 <div class="page-header d-print-none mb-3">
@@ -8,47 +9,68 @@
       <h2 class="page-title">داشبورد</h2>
     </div>
     <div class="col-auto ms-auto">
-      <a href="/proxies/new" class="btn btn-primary">➕ پروکسی جدید</a>
+      <a href="/proxies/new" class="btn btn-primary d-flex align-items-center gap-1">{{ ic.icon('plus') }} پروکسی جدید</a>
     </div>
   </div>
 </div>
 
-<!-- Status badges -->
 <div class="mb-3">
   {% if nettune.bbr_active %}
-    <span class="badge bg-green-lt">کنترل ازدحام TCP: {{ nettune.congestion_control }} ✓ BBR فعال</span>
+    <span class="badge bg-green-lt">کنترل ازدحام: {{ nettune.congestion_control }} ✓ BBR فعال</span>
   {% else %}
-    <span class="badge bg-yellow-lt">⚠ BBR غیرفعال (فعلی: {{ nettune.congestion_control }})</span>
+    <span class="badge bg-yellow-lt">⚠ BBR غیرفعال ({{ nettune.congestion_control }})</span>
   {% endif %}
   <span class="badge bg-azure-lt">صف‌بندی: {{ nettune.qdisc }}</span>
   {% if not ip %}<span class="badge bg-red-lt">⚠ IP سرور تنظیم نشده — در «تنظیمات» وارد کنید</span>{% endif %}
 </div>
 
 <!-- Stat tiles -->
-<div class="row row-deck row-cards mb-2">
-  <div class="col-6 col-lg-3">
-    <div class="card card-sm"><div class="card-body"><div class="row align-items-center">
-      <div class="col-auto"><span class="bg-primary text-white avatar">👥</span></div>
-      <div class="col"><div class="h1 mb-0">{{ totals.active }}</div><div class="text-secondary">کاربران آنلاین</div></div>
-    </div></div></div>
+<div class="row row-deck row-cards mb-3">
+  <div class="col-sm-6 col-lg-3">
+    <div class="card card-sm"><div class="card-body">
+      <div class="row align-items-center">
+        <div class="col-auto"><span class="bg-primary-lt avatar">{{ ic.icon('users','text-primary') }}</span></div>
+        <div class="col"><div class="h1 m-0" id="tile-active">{{ totals.active }}</div><div class="text-secondary">کاربران آنلاین</div></div>
+      </div>
+      <div id="spark-active" class="mt-2" style="min-height:40px"></div>
+    </div></div>
   </div>
-  <div class="col-6 col-lg-3">
-    <div class="card card-sm"><div class="card-body"><div class="row align-items-center">
-      <div class="col-auto"><span class="bg-green text-white avatar">📶</span></div>
-      <div class="col"><div class="h1 mb-0">{{ hb(totals.cum_bytes) }}</div><div class="text-secondary">ترافیک کل</div></div>
-    </div></div></div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card card-sm"><div class="card-body">
+      <div class="row align-items-center">
+        <div class="col-auto"><span class="bg-green-lt avatar">{{ ic.icon('traffic','text-green') }}</span></div>
+        <div class="col"><div class="h1 m-0" id="tile-traffic">{{ hb(totals.cum_bytes) }}</div><div class="text-secondary">ترافیک کل</div></div>
+      </div>
+      <div id="spark-traffic" class="mt-2" style="min-height:40px"></div>
+    </div></div>
   </div>
-  <div class="col-6 col-lg-3">
-    <div class="card card-sm"><div class="card-body"><div class="row align-items-center">
-      <div class="col-auto"><span class="bg-purple text-white avatar">🔁</span></div>
-      <div class="col"><div class="h1 mb-0">{{ totals.sessions }}</div><div class="text-secondary">تعداد استفاده‌ها</div></div>
-    </div></div></div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card card-sm"><div class="card-body">
+      <div class="row align-items-center">
+        <div class="col-auto"><span class="bg-purple-lt avatar">{{ ic.icon('device','text-purple') }}</span></div>
+        <div class="col"><div class="h1 m-0" id="tile-sessions">{{ totals.sessions }}</div><div class="text-secondary">تعداد استفاده‌ها</div></div>
+      </div>
+    </div></div>
   </div>
-  <div class="col-6 col-lg-3">
-    <div class="card card-sm"><div class="card-body"><div class="row align-items-center">
-      <div class="col-auto"><span class="bg-orange text-white avatar">🧍</span></div>
-      <div class="col"><div class="h1 mb-0">{{ totals.clients }}</div><div class="text-secondary">کاربران یکتا</div></div>
-    </div></div></div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card card-sm"><div class="card-body">
+      <div class="row align-items-center">
+        <div class="col-auto"><span class="bg-orange-lt avatar">{{ ic.icon('world','text-orange') }}</span></div>
+        <div class="col"><div class="h1 m-0" id="tile-clients">{{ totals.clients }}</div><div class="text-secondary">کاربران یکتا</div></div>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<!-- Live traffic chart -->
+<div class="card mb-3">
+  <div class="card-header">
+    <h3 class="card-title">ترافیک عبوری (لحظه‌ای)</h3>
+    <div class="card-actions text-secondary small">به‌روزرسانی هر ۱۵ ثانیه</div>
+  </div>
+  <div class="card-body">
+    <div id="chart-traffic" style="min-height:240px"></div>
+    <div id="chart-empty" class="text-secondary text-center py-5 d-none">هنوز داده‌ای برای نمودار جمع نشده — چند لحظه صبر کن.</div>
   </div>
 </div>
 
@@ -58,7 +80,7 @@
 <div class="card"><div class="empty">
   <p class="empty-title">هنوز پروکسی‌ای نساخته‌اید</p>
   <p class="empty-subtitle text-secondary">روی «پروکسی جدید» بزنید تا اولین پروکسی را بسازید.</p>
-  <div class="empty-action"><a href="/proxies/new" class="btn btn-primary">➕ پروکسی جدید</a></div>
+  <div class="empty-action"><a href="/proxies/new" class="btn btn-primary">پروکسی جدید</a></div>
 </div></div>
 {% endif %}
 
@@ -93,7 +115,6 @@
             </form>
           </div>
         </div>
-
         <div class="input-group mt-3">
           <input type="text" class="form-control proxy-link font-monospace" dir="ltr" readonly value="{{ p.tme }}">
           <button class="btn" type="button" onclick="copyFromRow(this)">کپی لینک</button>
@@ -105,4 +126,10 @@
   </div>
   {% endfor %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ APEX_JS }}" defer></script>
+<script src="/static/charts.js" defer></script>
+<script>window.addEventListener('load', function(){ if(window.initDashboard) initDashboard(); });</script>
 {% endblock %}
