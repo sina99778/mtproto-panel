@@ -14,6 +14,28 @@
   {% if not cf_dns_ready %}<br><span class="text-warning">⚠ توکن/Zone کلودفلر در «تنظیمات» وارد نشده — فِیل‌اوور DNS و Spectrum غیرفعال است.</span>{% endif %}
 </div>
 
+<details class="card mb-3">
+  <summary class="card-header" style="cursor:pointer">
+    <h3 class="card-title d-inline">📘 راهنمای Cloudflare Spectrum</h3>
+    <span class="text-secondary small ms-2">(کلیک برای باز/بسته شدن)</span>
+  </summary>
+  <div class="card-body">
+    <div class="alert alert-warning">
+      <strong>قبل از هر چیز:</strong> Spectrum برای پورت TCP دلخواه (که MTProto لازم دارد) فقط روی پلن
+      <strong>Enterprise</strong> کلودفلر است. Pro/Business فقط SSH/RDP/Minecraft دارند و برای MTProto
+      <strong>کار نمی‌کنند</strong>. اگر Enterprise نداری، از همین صفحه — <strong>Endpoint + دامنه + فِیل‌اوور DNS</strong> — استفاده کن (رایگان، همان نتیجه).
+    </div>
+    <ol class="mb-2">
+      <li>کلودفلر → <span dir="ltr">My Profile → API Tokens → Create Custom Token</span> با مجوزهای <code dir="ltr">Zone : Spectrum : Edit</code> و <code dir="ltr">Zone : DNS : Edit</code> روی دامنه‌ات.</li>
+      <li><span dir="ltr">Zone ID</span> را از صفحهٔ Overview دامنه‌ات بردار.</li>
+      <li>هر دو را در پنل → «تنظیمات» وارد کن و «IP عمومی سرور» را چک کن.</li>
+      <li>«پروکسی جدید» → نوع <strong>کلودفلر</strong> → پورت origin، دامنهٔ edge، پورت edge (۴۴۳) → بساز.</li>
+      <li>وضعیت Spectrum را پایین همین صفحه ببین؛ و حتماً پورت origin را در فایروال فقط به IPهای کلودفلر محدود کن.</li>
+    </ol>
+    <a href="https://github.com/sina99778/mtproto-panel/blob/main/docs/cloudflare-spectrum.md" target="_blank" rel="noopener" class="btn btn-sm">راهنمای کامل (با دستورهای فایروال) ↗</a>
+  </div>
+</details>
+
 {% if not items %}
 <div class="card"><div class="empty"><p class="empty-title">پروکسی‌ای وجود ندارد</p></div></div>
 {% endif %}
