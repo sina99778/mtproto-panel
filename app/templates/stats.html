@@ -52,7 +52,7 @@
           <tbody id="proxy-rows">
             {% for p in snap.proxies %}
             <tr>
-              <td class="fw-bold">{{ p.name }}</td>
+              <td class="fw-bold"><a href="/proxies/{{ p.id }}">{{ p.name }}</a></td>
               <td><span class="badge bg-blue-lt">{{ p.active }}</span></td>
               <td class="text-secondary">{{ hr(p.rate_bps) }}</td>
               <td class="text-green">{{ hb(p.cum_bytes) }}</td>

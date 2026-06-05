@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% import "_icons.html" as ic %}
+{% block content %}
+
+{% set badge = {'direct':'bg-blue-lt','tunneled':'bg-purple-lt','cloudflare':'bg-orange-lt'} %}
+{% set label = {'direct':'مستقیم (FakeTLS)','tunneled':'تانل‌شده','cloudflare':'کلودفلر'} %}
+
+<div class="page-header mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <div class="page-pretitle"><a href="/" class="text-secondary">← داشبورد</a></div>
+      <h2 class="page-title">
+        {{ p.name }}
+        <span class="badge {{ badge[p.mode] }} ms-2">{{ label[p.mode] }}</span>
+        {% if p.status == 'active' %}<span class="badge bg-green-lt">فعال</span>{% else %}<span class="badge bg-red-lt">{{ p.status }}</span>{% endif %}
+      </h2>
+    </div>
+    <div class="col-auto">
+      <div class="btn-list">
+        <form method="post" action="/proxies/{{ p.id }}/toggle">
+          <input type="hidden" name="back" value="/proxies/{{ p.id }}">
+          <button class="btn {{ 'btn-warning' if p.enabled else 'btn-success' }}">{{ 'توقف' if p.enabled else 'اجرا' }}</button>
+        </form>
+        <form method="post" action="/proxies/{{ p.id }}/delete" onsubmit="return confirm('این پروکسی برای همیشه حذف شود؟')">
+          <button class="btn btn-danger">حذف</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if flash %}<div class="alert alert-info">{{ flash }}</div>{% endif %}
+
+<!-- Connection -->
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="text-secondary small mb-2">
+      <span dir="ltr">{{ p.host }}:{{ p.link_port }}</span> · FakeTLS: <span dir="ltr">{{ p.tls_domain }}</span>
+      {% if p.ad_tag %} · کانال اسپانسر ✓{% endif %}
+      {% if p.front_host %} · <span class="text-green">Front</span>{% endif %}
+    </div>
+    <div class="input-group">
+      <input type="text" class="form-control proxy-link font-monospace" dir="ltr" readonly value="{{ p.tme }}">
+      <button class="btn" type="button" onclick="copyFromRow(this)">کپی لینک</button>
+      <button class="btn" type="button" onclick="qrFromRow(this)">QR</button>
+      <a class="btn btn-primary" href="{{ p.tg }}">اتصال</a>
+    </div>
+  </div>
+</div>
+
+<!-- Stat tiles -->
+<div class="row row-deck row-cards mb-3">
+  <div class="col-6 col-lg-3"><div class="card card-sm"><div class="card-body"><div class="row align-items-center">
+    <div class="col-auto"><span class="bg-primary-lt avatar">{{ ic.icon('users','text-primary') }}</span></div>
+    <div class="col"><div class="h1 m-0" id="tile-active">{{ snap.active }}</div><div class="text-secondary">آنلاین</div></div>
+  </div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card card-sm"><div class="card-body"><div class="row align-items-center">
+    <div class="col-auto"><span class="bg-green-lt avatar">{{ ic.icon('traffic','text-green') }}</span></div>
+    <div class="col"><div class="h1 m-0" id="tile-traffic">{{ hb(snap.cum_bytes) }}</div><div class="text-secondary">ترافیک</div></div>
+  </div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card card-sm"><div class="card-body"><div class="row align-items-center">
+    <div class="col-auto"><span class="bg-purple-lt avatar">{{ ic.icon('device','text-purple') }}</span></div>
+    <div class="col"><div class="h1 m-0" id="tile-sessions">{{ snap.sessions }}</div><div class="text-secondary">استفاده‌ها</div></div>
+  </div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card card-sm"><div class="card-body"><div class="row align-items-center">
+    <div class="col-auto"><span class="bg-orange-lt avatar">{{ ic.icon('world','text-orange') }}</span></div>
+    <div class="col"><div class="h1 m-0" id="tile-clients">{{ snap.clients }}</div><div class="text-secondary">کاربر یکتا</div></div>
+  </div></div></div></div>
+</div>
+
+<div class="row row-cards mb-3">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">ترافیک (لحظه‌ای)</h3></div>
+      <div class="card-body">
+        <div id="chart-traffic" style="min-height:240px"></div>
+        <div id="chart-empty" class="text-secondary text-center py-5 d-none">هنوز داده‌ای نیست.</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">اپراتورها</h3></div>
+      <div class="card-body">
+        <div id="chart-ops" style="min-height:240px"></div>
+        <div id="ops-empty" class="text-secondary {{ '' if not snap.operators else 'd-none' }}">داده‌ای نیست (یا کاربر از تونل/localhost می‌رسد).</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Connected clients -->
+<div class="card mb-3">
+  <div class="card-header"><h3 class="card-title">کاربران متصل (اخیر)</h3></div>
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table">
+      <thead><tr><th>IP</th><th>اپراتور</th><th>سشن‌ها</th><th>آخرین اتصال</th></tr></thead>
+      <tbody id="client-rows">
+        {% for cl in snap.client_list %}
+        <tr><td dir="ltr" class="font-monospace">{{ cl.ip }}</td><td>{{ cl.operator or '—' }}</td><td>{{ cl.sessions }}</td><td class="text-secondary" data-ts="{{ cl.last_seen }}">—</td></tr>
+        {% endfor %}
+        {% if not snap.client_list %}
+        <tr><td colspan="4" class="text-center text-secondary py-4">هنوز کاربری ثبت نشده.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Edit -->
+<details class="card mb-3">
+  <summary class="card-header" style="cursor:pointer"><h3 class="card-title d-inline">✏️ ویرایش تنظیمات</h3></summary>
+  <div class="card-body">
+    <form method="post" action="/proxies/{{ p.id }}/edit" class="row g-2">
+      <div class="col-md-6"><label class="form-label">نام</label><input name="name" class="form-control" value="{{ p.name }}" required></div>
+      <div class="col-md-6"><label class="form-label">دامنه FakeTLS <span class="text-secondary small">(تغییرش لینک را عوض می‌کند)</span></label><input name="tls_domain" class="form-control" dir="ltr" value="{{ p.tls_domain }}"></div>
+      <div class="col-md-6"><label class="form-label">تگ اسپانسر</label><input name="ad_tag" class="form-control font-monospace" dir="ltr" value="{{ p.ad_tag or '' }}" placeholder="از @MTProxybot"></div>
+      <div class="col-md-6"><label class="form-label">آدرس نمایشی / Front</label><input name="front_host" class="form-control font-monospace" dir="ltr" value="{{ p.front_host or '' }}"></div>
+      <div class="col-12 text-end"><button class="btn btn-primary">ذخیره و اعمال</button></div>
+    </form>
+  </div>
+</details>
+
+<!-- Endpoints / anti-filter (scoped to this proxy) -->
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Endpointها و چرخش</h3>
+    <div class="card-actions">
+      <form method="post" action="/antifilter/{{ p.id }}/rotate">
+        <input type="hidden" name="back" value="/proxies/{{ p.id }}">
+        <button class="btn btn-sm btn-primary">چرخش به سالم بعدی</button>
+      </form>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive mb-3">
+      <table class="table table-vcenter">
+        <thead><tr><th>آدرس</th><th>اولویت</th><th>وضعیت</th><th>فعال</th><th></th></tr></thead>
+        <tbody>
+          {% for e in endpoints %}
+          <tr>
+            <td dir="ltr" class="font-monospace">{{ e.address }}{% if e.label %} <span class="text-secondary">({{ e.label }})</span>{% endif %}</td>
+            <td>{{ e.priority }}</td>
+            <td>
+              {% if e.status == 'up' %}<span class="badge bg-green-lt">سالم</span>
+              {% elif e.status == 'down' %}<span class="badge bg-red-lt">خاموش</span>
+              {% else %}<span class="badge bg-secondary-lt">نامشخص</span>{% endif %}
+            </td>
+            <td>{% if e.active %}<span class="badge bg-green text-white">فعال</span>{% endif %}</td>
+            <td class="text-end"><div class="btn-list justify-content-end">
+              {% if not e.active %}<form method="post" action="/antifilter/endpoints/{{ e.id }}/activate"><input type="hidden" name="back" value="/proxies/{{ p.id }}"><button class="btn btn-sm">فعال‌کن</button></form>{% endif %}
+              <form method="post" action="/antifilter/endpoints/{{ e.id }}/iran-test"><input type="hidden" name="back" value="/proxies/{{ p.id }}"><button class="btn btn-sm btn-outline-azure">تست از ایران</button></form>
+              <form method="post" action="/antifilter/endpoints/{{ e.id }}/delete" onsubmit="return confirm('حذف؟')"><input type="hidden" name="back" value="/proxies/{{ p.id }}"><button class="btn btn-sm btn-outline-danger">حذف</button></form>
+            </div></td>
+          </tr>
+          {% endfor %}
+          {% if not endpoints %}<tr><td colspan="5" class="text-center text-secondary py-3">endpointی اضافه نشده — لینک از Front/IP پیش‌فرض استفاده می‌کند.</td></tr>{% endif %}
+        </tbody>
+      </table>
+    </div>
+
+    <form method="post" action="/antifilter/{{ p.id }}/endpoints" class="row g-2 align-items-end mb-3">
+      <input type="hidden" name="back" value="/proxies/{{ p.id }}">
+      <div class="col-md-5"><label class="form-label">آدرس جدید (IP/دامنه)</label><input name="address" class="form-control" dir="ltr" placeholder="1.2.3.4" required></div>
+      <div class="col-md-3"><label class="form-label">برچسب</label><input name="label" class="form-control" placeholder="ایران-۲"></div>
+      <div class="col-md-2"><label class="form-label">اولویت</label><input name="priority" type="number" class="form-control" value="100"></div>
+      <div class="col-md-2"><button class="btn btn-success w-100">افزودن</button></div>
+    </form>
+
+    <form method="post" action="/antifilter/{{ p.id }}/domain" class="row g-2 align-items-end border-top pt-3">
+      <input type="hidden" name="back" value="/proxies/{{ p.id }}">
+      <div class="col-md-6"><label class="form-label">دامنهٔ مدیریت‌شده (DNS فِیل‌اوور)</label><input name="link_domain" class="form-control" dir="ltr" value="{{ p.link_domain or '' }}" placeholder="proxy.example.com"></div>
+      <div class="col-md-4"><label class="form-check mt-3"><input type="checkbox" class="form-check-input" name="auto_rotate" value="1" {{ 'checked' if p.auto_rotate }}><span class="form-check-label">چرخش خودکار وقتی فعال خاموش شد</span></label></div>
+      <div class="col-md-2"><button class="btn btn-primary w-100">ذخیره</button></div>
+    </form>
+
+    {% if not cf_dns_ready %}<div class="text-secondary small mt-2">⚠ برای فِیل‌اوور DNS، توکن/Zone کلودفلر را در «تنظیمات» وارد کن.</div>{% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ APEX_JS }}" defer></script>
+<script src="/static/charts.js" defer></script>
+<script>window.addEventListener('load', function(){ if(window.initProxyDetail) initProxyDetail({{ p.id }}); });</script>
+{% endblock %}

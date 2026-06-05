@@ -119,27 +119,33 @@ def logout(request: Request):
 
 
 # --- Dashboard ------------------------------------------------------------
+def _safe_next(value, default="/"):
+    """Only allow same-site relative redirects."""
+    return value if isinstance(value, str) and value.startswith("/") and not value.startswith("//") else default
+
+
+def _resolve_link(p, ip):
+    """Host precedence for the user-facing link. Returns (host, link_port, links, active_endpoint)."""
+    active_ep = database.get_active_endpoint(p["id"])
+    if p["mode"] == "cloudflare" and p["cf_domain"]:
+        host, link_port = p["cf_domain"], (p["cf_edge_port"] or 443)       # Spectrum edge
+    elif p.get("link_domain"):
+        host, link_port = p["link_domain"], p["port"]                       # managed domain (DNS failover)
+    elif active_ep:
+        host, link_port = active_ep["address"], p["port"]                   # active rotation endpoint
+    else:
+        host, link_port = (p.get("front_host") or ip), p["port"]            # tunnel front / origin IP
+    links = utils.build_links(host or "SERVER_IP", link_port, p["secret"], p["tls_domain"])
+    return host, link_port, links, active_ep
+
+
 def _build_rows():
     ip = database.get_setting("server_public_ip", "") or ""
     proxies = database.list_proxies()
     statuses = proxy_manager.statuses(proxies)  # one systemctl call for all
     rows = []
     for p in proxies:
-        active_ep = database.get_active_endpoint(p["id"])
-        # Host precedence for the user-facing link:
-        if p["mode"] == "cloudflare" and p["cf_domain"]:
-            host = p["cf_domain"]                       # Spectrum edge
-            link_port = p["cf_edge_port"] or 443
-        elif p.get("link_domain"):
-            host = p["link_domain"]                      # managed domain (DNS failover)
-            link_port = p["port"]
-        elif active_ep:
-            host = active_ep["address"]                  # active rotation endpoint
-            link_port = p["port"]
-        else:
-            host = p.get("front_host") or ip             # tunnel front / origin IP
-            link_port = p["port"]
-        links = utils.build_links(host or "SERVER_IP", link_port, p["secret"], p["tls_domain"])
+        host, link_port, links, active_ep = _resolve_link(p, ip)
         rows.append({
             **p, "host": host, "link_port": link_port,
             "status": statuses.get(p["id"], "unknown"), "active_endpoint": active_ep, **links,
@@ -265,7 +271,7 @@ def create_proxy(
 
 
 @app.post("/proxies/{pid}/toggle")
-def toggle_proxy(pid: int, _user: str = Depends(require_user)):
+def toggle_proxy(pid: int, _user: str = Depends(require_user), back: str = Form("/")):
     p = database.get_proxy(pid)
     if p:
         if p["enabled"]:
@@ -274,7 +280,7 @@ def toggle_proxy(pid: int, _user: str = Depends(require_user)):
         else:
             database.set_enabled(pid, 1)
             proxy_manager.apply(database.get_proxy(pid))
-    return RedirectResponse("/", status_code=303)
+    return RedirectResponse(_safe_next(back), status_code=303)
 
 
 @app.post("/proxies/{pid}/delete")
@@ -363,6 +369,61 @@ def series_api(_user: str = Depends(require_user)):
     return JSONResponse(stats.series())
 
 
+# --- Per-proxy detail / management ---------------------------------------
+@app.get("/proxies/{pid}")
+def proxy_detail(pid: int, request: Request, _user: str = Depends(require_user)):
+    p = database.get_proxy(pid)
+    if not p:
+        return RedirectResponse("/", status_code=303)
+    ip = database.get_setting("server_public_ip", "") or ""
+    host, link_port, links, active_ep = _resolve_link(p, ip)
+    ctx = {
+        "request": request,
+        "p": {**p, "host": host, "link_port": link_port, "status": proxy_manager.status(p), **links},
+        "endpoints": database.list_endpoints(pid),
+        "snap": stats.proxy_snapshot(pid),
+        "hb": utils.human_bytes, "hr": utils.human_rate,
+        "cf_dns_ready": bool(database.get_setting("cf_api_token") and database.get_setting("cf_zone_id")),
+        "flash": request.session.pop("flash", None),
+    }
+    return templates.TemplateResponse("proxy_detail.html", ctx)
+
+
+@app.post("/proxies/{pid}/edit")
+def edit_proxy(pid: int, request: Request, _user: str = Depends(require_user),
+               name: str = Form(...), tls_domain: str = Form(...),
+               ad_tag: str = Form(""), front_host: str = Form("")):
+    p = database.get_proxy(pid)
+    if not p:
+        return RedirectResponse("/", status_code=303)
+    back = f"/proxies/{pid}"
+    if not utils.valid_domain(tls_domain):
+        request.session["flash"] = "دامنه FakeTLS نامعتبر است."
+        return RedirectResponse(back, status_code=303)
+    ad = ad_tag.strip().lower() or None
+    if ad and not re.fullmatch(r"[0-9a-f]{32}", ad):
+        request.session["flash"] = "تگ اسپانسر باید ۳۲ کاراکتر هگز باشد."
+        return RedirectResponse(back, status_code=303)
+    fh = front_host.strip()
+    if fh and not utils.valid_host(fh):
+        request.session["flash"] = "آدرس نمایشی (Front) نامعتبر است."
+        return RedirectResponse(back, status_code=303)
+    database.update_proxy_settings(pid, name.strip() or p["name"], tls_domain.strip(), ad, fh or None)
+    proxy_manager.apply(database.get_proxy(pid))  # regenerate config + restart so changes take effect
+    request.session["flash"] = "تغییرات ذخیره و اعمال شد."
+    return RedirectResponse(back, status_code=303)
+
+
+@app.get("/api/proxies/{pid}/stats")
+def proxy_stats_api(pid: int, _user: str = Depends(require_user)):
+    return JSONResponse(stats.proxy_snapshot(pid))
+
+
+@app.get("/api/proxies/{pid}/series")
+def proxy_series_api(pid: int, _user: str = Depends(require_user)):
+    return JSONResponse(stats.series(proxy_id=pid))
+
+
 # --- Anti-filter: endpoints, rotation, DNS failover ----------------------
 @app.get("/antifilter")
 def antifilter_page(request: Request, _user: str = Depends(require_user)):
@@ -378,46 +439,49 @@ def antifilter_page(request: Request, _user: str = Depends(require_user)):
 
 @app.post("/antifilter/{pid}/endpoints")
 def add_endpoint(pid: int, request: Request, _user: str = Depends(require_user),
-                 address: str = Form(...), label: str = Form(""), priority: str = Form("100")):
+                 address: str = Form(...), label: str = Form(""), priority: str = Form("100"),
+                 back: str = Form("/antifilter")):
     if not database.get_proxy(pid):
-        return RedirectResponse("/antifilter", status_code=303)
+        return RedirectResponse(_safe_next(back, "/antifilter"), status_code=303)
     if not utils.valid_host(address):
         request.session["flash"] = "آدرس endpoint نامعتبر است (IP یا دامنه)."
     else:
         pr = int(priority) if priority.strip().isdigit() else 100
         database.add_endpoint(pid, address.strip(), label.strip() or None, pr)
-    return RedirectResponse("/antifilter", status_code=303)
+    return RedirectResponse(_safe_next(back, "/antifilter"), status_code=303)
 
 
 @app.post("/antifilter/endpoints/{eid}/delete")
-def del_endpoint(eid: int, _user: str = Depends(require_user)):
+def del_endpoint(eid: int, _user: str = Depends(require_user), back: str = Form("/antifilter")):
     database.delete_endpoint(eid)
-    return RedirectResponse("/antifilter", status_code=303)
+    return RedirectResponse(_safe_next(back, "/antifilter"), status_code=303)
 
 
 @app.post("/antifilter/endpoints/{eid}/activate")
-def activate_endpoint(eid: int, request: Request, _user: str = Depends(require_user)):
+def activate_endpoint(eid: int, request: Request, _user: str = Depends(require_user),
+                      back: str = Form("/antifilter")):
     ep = database.get_endpoint(eid)
     if ep:
         failover.rotate(ep["proxy_id"], prefer_id=eid)
         request.session["flash"] = f"endpoint فعال شد: {ep['address']}"
-    return RedirectResponse("/antifilter", status_code=303)
+    return RedirectResponse(_safe_next(back, "/antifilter"), status_code=303)
 
 
 @app.post("/antifilter/{pid}/rotate")
-def rotate_proxy(pid: int, request: Request, _user: str = Depends(require_user)):
+def rotate_proxy(pid: int, request: Request, _user: str = Depends(require_user),
+                 back: str = Form("/antifilter")):
     tgt = failover.rotate(pid)
     request.session["flash"] = (f"چرخش انجام شد → {tgt['address']}" if tgt else "endpoint سالمی برای چرخش نبود.")
-    return RedirectResponse("/antifilter", status_code=303)
+    return RedirectResponse(_safe_next(back, "/antifilter"), status_code=303)
 
 
 @app.post("/antifilter/{pid}/domain")
 def set_domain(pid: int, request: Request, _user: str = Depends(require_user),
-               link_domain: str = Form(""), auto_rotate: str = Form("")):
+               link_domain: str = Form(""), auto_rotate: str = Form(""), back: str = Form("/antifilter")):
     d = link_domain.strip()
     if d and not utils.valid_domain(d):
         request.session["flash"] = "دامنه نامعتبر است."
-        return RedirectResponse("/antifilter", status_code=303)
+        return RedirectResponse(_safe_next(back, "/antifilter"), status_code=303)
     database.set_link_domain(pid, d or None)
     database.set_auto_rotate(pid, bool(auto_rotate))
     # Point the domain at the current active endpoint right away.
@@ -428,11 +492,12 @@ def set_domain(pid: int, request: Request, _user: str = Depends(require_user),
         request.session["flash"] = "دامنه ذخیره شد و DNS به‌روزرسانی شد." if ok else "دامنه ذخیره شد (به‌روزرسانی DNS انجام نشد — تنظیمات کلودفلر را چک کن)."
     else:
         request.session["flash"] = "ذخیره شد."
-    return RedirectResponse("/antifilter", status_code=303)
+    return RedirectResponse(_safe_next(back, "/antifilter"), status_code=303)
 
 
 @app.post("/antifilter/endpoints/{eid}/iran-test")
-def iran_test_endpoint(eid: int, request: Request, _user: str = Depends(require_user)):
+def iran_test_endpoint(eid: int, request: Request, _user: str = Depends(require_user),
+                       back: str = Form("/antifilter")):
     ep = database.get_endpoint(eid)
     if ep:
         proxy = database.get_proxy(ep["proxy_id"])
@@ -444,11 +509,12 @@ def iran_test_endpoint(eid: int, request: Request, _user: str = Depends(require_
             )
         else:
             request.session["flash"] = f"تست از ایران ناموفق بود: {res['error']}"
-    return RedirectResponse("/antifilter", status_code=303)
+    return RedirectResponse(_safe_next(back, "/antifilter"), status_code=303)
 
 
 @app.post("/antifilter/{pid}/spectrum/recreate")
-def spectrum_recreate(pid: int, request: Request, _user: str = Depends(require_user)):
+def spectrum_recreate(pid: int, request: Request, _user: str = Depends(require_user),
+                      back: str = Form("/antifilter")):
     p = database.get_proxy(pid)
     token = database.get_setting("cf_api_token")
     zone = database.get_setting("cf_zone_id")
@@ -464,11 +530,12 @@ def spectrum_recreate(pid: int, request: Request, _user: str = Depends(require_u
         request.session["flash"] = "اپ Spectrum ساخته شد." if ok else f"ساخت Spectrum ناموفق: {detail}"
     else:
         request.session["flash"] = "برای Spectrum: پروکسی باید حالت کلودفلر باشد و توکن/Zone/IP تنظیم شده باشند."
-    return RedirectResponse("/antifilter", status_code=303)
+    return RedirectResponse(_safe_next(back, "/antifilter"), status_code=303)
 
 
 @app.post("/antifilter/{pid}/spectrum/delete")
-def spectrum_delete(pid: int, request: Request, _user: str = Depends(require_user)):
+def spectrum_delete(pid: int, request: Request, _user: str = Depends(require_user),
+                    back: str = Form("/antifilter")):
     p = database.get_proxy(pid)
     token = database.get_setting("cf_api_token")
     zone = database.get_setting("cf_zone_id")
@@ -476,4 +543,4 @@ def spectrum_delete(pid: int, request: Request, _user: str = Depends(require_use
         cloudflare.delete_spectrum_app(token, zone, p["cf_app_id"])
         database.set_cf_app_id(pid, None)
         request.session["flash"] = "اپ Spectrum حذف شد."
-    return RedirectResponse("/antifilter", status_code=303)
+    return RedirectResponse(_safe_next(back, "/antifilter"), status_code=303)

@@ -369,13 +369,39 @@ def clients_count(pid=None):
         return r["c"]
 
 
-def aggregate_series(limit=120):
-    """Time series across all proxies, grouped by sample timestamp (ascending).
-    collect_once uses one timestamp per cycle, so SUM-by-ts is well defined."""
+def aggregate_series(limit=120, proxy_id=None):
+    """Time series (ascending). Across all proxies (grouped by ts) or for one proxy."""
+    with get_db() as db:
+        if proxy_id is None:
+            rows = db.execute(
+                "SELECT ts, SUM(active) active, SUM(cum_bytes) cum "
+                "FROM stats_samples GROUP BY ts ORDER BY ts DESC LIMIT ?",
+                (int(limit),),
+            ).fetchall()
+        else:
+            rows = db.execute(
+                "SELECT ts, active, cum_bytes AS cum FROM stats_samples "
+                "WHERE proxy_id=? ORDER BY ts DESC LIMIT ?",
+                (proxy_id, int(limit)),
+            ).fetchall()
+        return [_row(r) for r in reversed(rows)]
+
+
+def list_clients(proxy_id, limit=100):
+    """Recent distinct clients of a proxy (for the per-proxy detail page)."""
     with get_db() as db:
         rows = db.execute(
-            "SELECT ts, SUM(active) active, SUM(cum_bytes) cum "
-            "FROM stats_samples GROUP BY ts ORDER BY ts DESC LIMIT ?",
-            (int(limit),),
+            "SELECT ip, operator, asn, sessions, first_seen, last_seen FROM clients "
+            "WHERE proxy_id=? ORDER BY last_seen DESC LIMIT ?",
+            (proxy_id, int(limit)),
         ).fetchall()
-        return [_row(r) for r in reversed(rows)]
+        return [_row(r) for r in rows]
+
+
+def update_proxy_settings(pid, name, tls_domain, ad_tag, front_host):
+    """Update the editable fields of a proxy (not port/secret/mode)."""
+    with get_db() as db:
+        db.execute(
+            "UPDATE proxies SET name=?, tls_domain=?, ad_tag=?, front_host=? WHERE id=?",
+            (name, tls_domain, ad_tag or None, front_host or None, pid),
+        )

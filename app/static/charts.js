@@ -104,12 +104,90 @@ window.initStats = function () {
         tbody.innerHTML = s.proxies.map(function (p) {
           var op = (p.operators && p.operators[0]) ? p.operators[0].operator : "—";
           return "<tr>" +
-            '<td class="fw-bold">' + escapeHtml(p.name) + "</td>" +
+            '<td class="fw-bold"><a href="/proxies/' + p.id + '">' + escapeHtml(p.name) + "</a></td>" +
             '<td><span class="badge bg-blue-lt">' + p.active + "</span></td>" +
             '<td class="text-secondary">' + humanRate(p.rate_bps) + "</td>" +
             '<td class="text-green">' + humanBytes(p.cum_bytes) + "</td>" +
             "<td>" + p.sessions + "</td><td>" + p.clients + "</td>" +
             '<td class="text-secondary">' + escapeHtml(op) + "</td></tr>";
+        }).join("");
+      }
+    }
+  }
+  refresh();
+  setInterval(refresh, REFRESH_MS);
+};
+
+/* ---------- Per-proxy detail ---------- */
+function _fmtTime(ts) {
+  try { return new Date(Number(ts) * 1000).toLocaleString("fa-IR"); } catch (e) { return "—"; }
+}
+
+window.initProxyDetail = function (pid) {
+  // Fill server-rendered "last seen" cells immediately.
+  document.querySelectorAll("#client-rows [data-ts]").forEach(function (td) {
+    var ts = parseInt(td.getAttribute("data-ts"), 10);
+    if (ts) td.textContent = _fmtTime(ts);
+  });
+
+  var traffic = null, donut = null;
+  if (window.ApexCharts && document.getElementById("chart-traffic")) {
+    traffic = new ApexCharts(document.getElementById("chart-traffic"), {
+      chart: { type: "area", height: 240, fontFamily: "inherit", toolbar: { show: false } },
+      series: [{ name: "سرعت", data: [] }],
+      xaxis: { type: "datetime", labels: { datetimeUTC: false } },
+      yaxis: { labels: { formatter: function (v) { return humanRate(v); } } },
+      dataLabels: { enabled: false }, stroke: { curve: "smooth", width: 2 },
+      fill: { type: "gradient", gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05 } },
+      colors: ["#0d6efd"], tooltip: { x: { format: "HH:mm:ss" }, y: { formatter: function (v) { return humanRate(v); } } },
+    });
+    traffic.render();
+  }
+
+  async function refresh() {
+    if (traffic) {
+      try {
+        var d = await getJSON("/api/proxies/" + pid + "/series");
+        var pts = d.points || [];
+        var ce = document.getElementById("chart-empty");
+        if (ce) ce.classList.toggle("d-none", pts.length > 0);
+        traffic.updateSeries([{ name: "سرعت", data: pts.map(function (p) { return [p.t, p.rate]; }) }]);
+      } catch (e) {}
+    }
+    var s;
+    try { s = await getJSON("/api/proxies/" + pid + "/stats"); } catch (e) { return; }
+    setText("tile-active", s.active);
+    setText("tile-traffic", humanBytes(s.cum_bytes));
+    setText("tile-sessions", s.sessions);
+    setText("tile-clients", s.clients);
+
+    var ops = s.operators || [];
+    var oe = document.getElementById("ops-empty");
+    if (oe) oe.classList.toggle("d-none", ops.length > 0);
+    if (window.ApexCharts && document.getElementById("chart-ops") && ops.length) {
+      var series = ops.map(function (o) { return o.c; });
+      var labels = ops.map(function (o) { return o.operator; });
+      if (!donut) {
+        donut = new ApexCharts(document.getElementById("chart-ops"), {
+          chart: { type: "donut", height: 240, fontFamily: "inherit" },
+          series: series, labels: labels, legend: { position: "bottom" },
+        });
+        donut.render();
+      } else {
+        donut.updateOptions({ labels: labels }, false, false);
+        donut.updateSeries(series);
+      }
+    }
+
+    var tb = document.getElementById("client-rows");
+    if (tb && s.client_list) {
+      if (!s.client_list.length) {
+        tb.innerHTML = '<tr><td colspan="4" class="text-center text-secondary py-4">هنوز کاربری ثبت نشده.</td></tr>';
+      } else {
+        tb.innerHTML = s.client_list.map(function (cl) {
+          return "<tr><td dir='ltr' class='font-monospace'>" + escapeHtml(cl.ip) + "</td><td>" +
+            escapeHtml(cl.operator || "—") + "</td><td>" + cl.sessions + "</td><td class='text-secondary'>" +
+            _fmtTime(cl.last_seen) + "</td></tr>";
         }).join("");
       }
     }

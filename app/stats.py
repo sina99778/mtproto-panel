@@ -185,10 +185,25 @@ def snapshot():
     return {"proxies": rows, "totals": totals}
 
 
-def series(limit=120):
-    """Aggregated time series for the dashboard charts: active users and
-    throughput (bytes/sec) over the most recent samples."""
-    rows = database.aggregate_series(limit)
+def proxy_snapshot(pid):
+    """Detailed stats for one proxy (per-proxy detail page)."""
+    ps = database.proxy_stats(pid) or {"cum_bytes": 0, "sessions": 0}
+    ls = database.latest_sample(pid)
+    return {
+        "active": ls["active"] if ls else 0,
+        "cum_bytes": ps["cum_bytes"],
+        "sessions": ps["sessions"],
+        "rate_bps": _rate_bps(pid),
+        "clients": database.clients_count(pid),
+        "operators": database.top_operators(pid, limit=8),
+        "client_list": database.list_clients(pid, 100),
+    }
+
+
+def series(limit=120, proxy_id=None):
+    """Aggregated time series for the charts: active users and throughput
+    (bytes/sec) over the most recent samples. Global or per-proxy."""
+    rows = database.aggregate_series(limit, proxy_id)
     points = []
     prev = None
     for r in rows:

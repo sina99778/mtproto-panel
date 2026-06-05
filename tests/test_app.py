@@ -193,6 +193,28 @@ with TestClient(main.app) as c:
     check("delete removes row", database.get_proxy(p["id"]) is None)
     check("delete removes unit file", f"mtproxy-{p['id']}.service" not in units())
 
+    print("[per-proxy detail page + edit + apis]")
+    dp = database.list_proxies()[0]  # any existing proxy
+    r = c.get(f"/proxies/{dp['id']}")
+    check("proxy detail page renders", r.status_code == 200 and "Endpoint" in r.text and "کاربران متصل" in r.text)
+    r = c.get(f"/api/proxies/{dp['id']}/stats")
+    check("per-proxy stats api", r.status_code == 200 and "client_list" in r.json())
+    r = c.get(f"/api/proxies/{dp['id']}/series")
+    check("per-proxy series api", r.status_code == 200 and "points" in r.json())
+    r = c.post(f"/proxies/{dp['id']}/edit", data={"name": "Renamed", "tls_domain": "www.bing.com",
+               "ad_tag": "", "front_host": ""}, follow_redirects=False)
+    check("edit redirects back to detail", r.status_code == 303 and r.headers["location"] == f"/proxies/{dp['id']}")
+    check("edit persisted new name + domain",
+          database.get_proxy(dp["id"])["name"] == "Renamed" and database.get_proxy(dp["id"])["tls_domain"] == "www.bing.com")
+    r = c.post(f"/proxies/{dp['id']}/edit", data={"name": "x", "tls_domain": "not a domain"}, follow_redirects=False)
+    check("edit rejects bad domain (stays on detail)", r.headers["location"] == f"/proxies/{dp['id']}")
+    r = c.get("/proxies/999999", follow_redirects=False)
+    check("missing proxy detail redirects home", r.status_code == 303 and r.headers["location"] == "/")
+    # toggle with back returns to detail page
+    r = c.post(f"/proxies/{dp['id']}/toggle", data={"back": f"/proxies/{dp['id']}"}, follow_redirects=False)
+    check("toggle honors back redirect", r.headers["location"] == f"/proxies/{dp['id']}")
+    c.post(f"/proxies/{dp['id']}/toggle", data={"back": f"/proxies/{dp['id']}"})  # toggle back on
+
     print("[stats page + api]")
     r = c.get("/stats")
     check("stats page renders", r.status_code == 200 and "آمار و مانیتورینگ" in r.text)
