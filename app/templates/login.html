@@ -1,25 +1,33 @@
 {% extends "base.html" %}
 {% block content_full %}
-<div class="page page-center">
-  <div class="container container-tight py-4">
+<div class="page page-center" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(192, 132, 252, 0.08) 100%); min-height: 100vh;">
+  <div class="container container-tight py-6">
     <div class="text-center mb-4">
-      <span class="navbar-brand navbar-brand-autodark fw-bold fs-2 text-primary">🛡️ پنل MTProto</span>
+      <span class="fw-bold fs-1 d-flex align-items-center justify-content-center gap-2" style="background: linear-gradient(135deg, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+        🛡️ پنل مدیریت MTProto
+      </span>
     </div>
-    <div class="card card-md">
-      <div class="card-body">
-        <h2 class="h2 text-center mb-4">ورود به پنل</h2>
-        {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+    <div class="card card-md" style="border: 1px solid var(--card-border) !important; background: var(--card-bg) !important; box-shadow: 0 20px 40px -15px rgba(0,0,0,0.15) !important; border-radius: 20px !important; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
+      <div class="card-body p-5">
+        <h2 class="h2 text-center mb-4 fw-bold">ورود به مدیریت</h2>
+        
+        {% if error %}
+        <div class="alert alert-danger" role="alert" style="border-radius: 10px; border: 0; background-color: rgba(244, 63, 94, 0.1); color: var(--accent-red); font-weight: 500;">
+          {{ error }}
+        </div>
+        {% endif %}
+        
         <form method="post" action="/login" autocomplete="off" novalidate>
           <div class="mb-3">
-            <label class="form-label">نام کاربری</label>
-            <input name="username" class="form-control" autocomplete="username" required>
+            <label class="form-label fw-bold">نام کاربری</label>
+            <input name="username" class="form-control" autocomplete="username" placeholder="username" required>
           </div>
-          <div class="mb-3">
-            <label class="form-label">رمز عبور</label>
-            <input name="password" type="password" class="form-control" autocomplete="current-password" required>
+          <div class="mb-4">
+            <label class="form-label fw-bold">رمز عبور</label>
+            <input name="password" type="password" class="form-control" autocomplete="current-password" placeholder="••••••••" required>
           </div>
-          <div class="form-footer">
-            <button type="submit" class="btn btn-primary w-100">ورود</button>
+          <div class="form-footer mt-2">
+            <button type="submit" class="btn btn-primary w-100 py-2 fs-3">ورود به پنل</button>
           </div>
         </form>
       </div>

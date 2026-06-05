@@ -2,120 +2,205 @@
 {% import "_icons.html" as ic %}
 {% block content %}
 
-<div class="page-header mb-3"><h2 class="page-title">ضدفیلتر / Endpointها</h2></div>
-
-{% if flash %}<div class="alert alert-info">{{ flash }}</div>{% endif %}
-
-<div class="alert alert-secondary">
-  <strong>چطور کار می‌کند:</strong> برای هر پروکسی چند آدرس (IP/دامنه) به‌عنوان endpoint اضافه کن.
-  پنل سلامت‌شان را چک می‌کند و آدرس <span class="badge bg-green-lt">فعال</span> در لینک کاربران استفاده می‌شود.
-  اگر «دامنهٔ مدیریت‌شده» بگذاری و کلودفلر را در تنظیمات وصل کنی، موقع چرخش، رکورد DNS هم خودکار عوض می‌شود.
-  <br><span class="text-secondary small">توجه: فیلترِ واقعیِ ایران از سمت سرور قابل‌تشخیص نیست؛ برای آن از دکمهٔ «تست از ایران» استفاده کن. چرخشِ خودکار فقط روی endpointهای «خاموش» عمل می‌کند.</span>
-  {% if not cf_dns_ready %}<br><span class="text-warning">⚠ توکن/Zone کلودفلر در «تنظیمات» وارد نشده — فِیل‌اوور DNS و Spectrum غیرفعال است.</span>{% endif %}
+<div class="page-header mb-4">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title fw-bold fs-1">ضدفیلتر و مدیریت Endpointها</h2>
+      <p class="text-secondary small m-0 mt-1">تکنولوژی توزیع بار و فِیل‌اوور هوشمند بر روی چندین سرور یا آی‌پی</p>
+    </div>
+  </div>
 </div>
 
-<details class="card mb-3">
-  <summary class="card-header" style="cursor:pointer">
-    <h3 class="card-title d-inline">📘 راهنمای Cloudflare Spectrum</h3>
-    <span class="text-secondary small ms-2">(کلیک برای باز/بسته شدن)</span>
-  </summary>
-  <div class="card-body">
-    <div class="alert alert-warning">
-      <strong>قبل از هر چیز:</strong> Spectrum برای پورت TCP دلخواه (که MTProto لازم دارد) فقط روی پلن
-      <strong>Enterprise</strong> کلودفلر است. Pro/Business فقط SSH/RDP/Minecraft دارند و برای MTProto
-      <strong>کار نمی‌کنند</strong>. اگر Enterprise نداری، از همین صفحه — <strong>Endpoint + دامنه + فِیل‌اوور DNS</strong> — استفاده کن (رایگان، همان نتیجه).
+{% if flash %}
+<div class="alert alert-info border-0 shadow-sm mb-4" style="background-color: rgba(99, 102, 241, 0.08); color: var(--primary-color); border-radius: 12px; font-weight: 500;">
+  {{ flash }}
+</div>
+{% endif %}
+
+<!-- How it works banner -->
+<div class="alert alert-info border-0 shadow-sm p-4 mb-4" style="background-color: rgba(99, 102, 241, 0.04); border-right: 4px solid var(--primary-color) !important; color: var(--text-main); border-radius: 12px;">
+  <h4 class="fw-bold mb-2">💡 سازوکار ضدفیلتر چگونه است؟</h4>
+  <p class="m-0 mb-2">شما می‌توانید برای هر پورت پروکسی، چندین آدرس (آی‌پی یا دامنه کمکی) به عنوان <strong>Endpoint</strong> اضافه کنید. پنل به طور منظم سلامت تمام این مسیرها را می‌سنجد و آدرس <span class="badge bg-green text-white">فعال</span> و سالم را در لینک اصلی کاربران قرار می‌دهد.</p>
+  <p class="m-0 small text-secondary">
+    • با ست کردن «دامنه مدیریت‌شده» و اتصال حساب کلودفلر، در صورت بروز فیلترینگ، رکورد DNS دامنه به صورت خودکار به آی‌پی سالم بعدی سوئیچ خواهد شد و اتصال کاربران بدون تغییر لینک برقرار می‌ماند.<br>
+    • توجه: از آنجا که سیستم فیلترینگ ایران از خارج کشور قابل تشخیص خودکار نیست، چرخش خودکار سیستم فقط بر روی قطعی‌های سرور (Down شدن) عمل می‌کند. برای سنجش فیلترینگ از داخل ایران از دکمه <strong>«تست از ایران»</strong> استفاده کنید.
+  </p>
+  {% if not cf_dns_ready %}
+    <div class="text-warning small mt-3 fw-medium">
+      ⚠ توکن یا Zone ID کلودفلر در «تنظیمات» وارد نشده است. قابلیت‌های سوئیچ خودکار DNS و پروکسی Spectrum در حال حاضر غیرفعال هستند.
     </div>
-    <ol class="mb-2">
-      <li>کلودفلر → <span dir="ltr">My Profile → API Tokens → Create Custom Token</span> با مجوزهای <code dir="ltr">Zone : Spectrum : Edit</code> و <code dir="ltr">Zone : DNS : Edit</code> روی دامنه‌ات.</li>
-      <li><span dir="ltr">Zone ID</span> را از صفحهٔ Overview دامنه‌ات بردار.</li>
-      <li>هر دو را در پنل → «تنظیمات» وارد کن و «IP عمومی سرور» را چک کن.</li>
-      <li>«پروکسی جدید» → نوع <strong>کلودفلر</strong> → پورت origin، دامنهٔ edge، پورت edge (۴۴۳) → بساز.</li>
-      <li>وضعیت Spectrum را پایین همین صفحه ببین؛ و حتماً پورت origin را در فایروال فقط به IPهای کلودفلر محدود کن.</li>
+  {% endif %}
+</div>
+
+<!-- Cloudflare Spectrum Guide details -->
+<details class="card mb-4 border border-warning-lt">
+  <summary class="card-header p-4 bg-warning-lt" style="background-color: rgba(245, 158, 11, 0.03);">
+    <h3 class="card-title fw-bold m-0 text-warning d-inline">📘 راهنمای فعال‌سازی Cloudflare Spectrum</h3>
+    <span class="text-secondary small ms-2">(برای مطالعه راهنما کلیک کنید)</span>
+  </summary>
+  <div class="card-body p-4">
+    <div class="alert alert-warning border-0 p-3 mb-3" style="background-color: rgba(245, 158, 11, 0.08); color: var(--accent-amber); border-radius: 10px;">
+      💡 <strong>نکته فنی بسیار مهم:</strong> سرویس Spectrum برای پورت‌های TCP دلخواه (که پروتکل MTProto روی آن کار می‌کند) فقط در پلن <strong>Enterprise</strong> کلودفلر ارائه می‌شود. در صورتی که این پلن را ندارید، از ترکیب <strong>Endpoint + دامنه مدیریت‌شده + فِیل‌اوور DNS</strong> به صورت کاملاً رایگان استفاده کنید که نتیجه مشابهی دارد.
+    </div>
+    
+    <h5 class="fw-bold mb-2">مراحل فعال‌سازی Spectrum:</h5>
+    <ol class="mb-3 lh-lg text-secondary">
+      <li>در پنل کلودفلر به بخش <span dir="ltr">My Profile → API Tokens → Create Token</span> بروید و یک توکن با دسترسی‌های ویرایش <code class="font-monospace">Zone : Spectrum : Edit</code> و <code class="font-monospace">Zone : DNS : Edit</code> ایجاد کنید.</li>
+      <li>کد <code class="font-monospace">Zone ID</code> را از صفحه Overview دامنه بردارید.</li>
+      <li>اطلاعات فوق و آی‌پی عمومی سرور را در بخش «تنظیمات» پنل ذخیره کنید.</li>
+      <li>هنگام ساخت پروکسی، نوع اتصال را <strong>کلودفلر</strong> انتخاب کرده و مشخصات Edge Domain را وارد کنید.</li>
     </ol>
-    <a href="https://github.com/sina99778/mtproto-panel/blob/main/docs/cloudflare-spectrum.md" target="_blank" rel="noopener" class="btn btn-sm">راهنمای کامل (با دستورهای فایروال) ↗</a>
+    <a href="https://github.com/sina99778/mtproto-panel/blob/main/docs/cloudflare-spectrum.md" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1">
+      {{ ic.icon('link') }} مطالعه راهنمای جامع فایروال و اتصال ↗
+    </a>
   </div>
 </details>
 
 {% if not items %}
-<div class="card"><div class="empty"><p class="empty-title">پروکسی‌ای وجود ندارد</p></div></div>
+<div class="card"><div class="empty">
+  <div class="empty-icon mb-3" style="font-size: 3rem;">🌐</div>
+  <p class="empty-title">پروکسی‌ای وجود ندارد</p>
+  <p class="empty-subtitle text-secondary">ابتدا باید از منوی «پروکسی جدید» یک سرویس ایجاد کنید.</p>
+</div></div>
 {% endif %}
 
 {% for p in items %}
-<div class="card mb-3">
-  <div class="card-header">
-    <h3 class="card-title">{{ p.name }} <span class="text-secondary small">(پورت {{ p.port }})</span></h3>
+<div class="card mb-4 overflow-hidden">
+  <div class="card-header p-4 d-flex justify-content-between align-items-center bg-light">
+    <div>
+      <h3 class="card-title fw-bold m-0">{{ p.name }}</h3>
+      <p class="text-secondary small m-0 mt-1" dir="ltr">پورت: {{ p.port }}</p>
+    </div>
     <div class="card-actions">
       <form method="post" action="/antifilter/{{ p.id }}/rotate" class="d-inline">
-        <button class="btn btn-sm btn-primary">چرخش به سالم بعدی</button>
+        <button class="btn btn-sm btn-primary d-flex align-items-center gap-1">
+          {{ ic.icon('activity') }} چرخش به Endpoint بعدی
+        </button>
       </form>
     </div>
   </div>
-  <div class="card-body">
+  
+  <div class="card-body p-4">
 
     <!-- Endpoints table -->
-    <div class="table-responsive mb-3">
-      <table class="table table-vcenter">
-        <thead><tr><th>آدرس</th><th>برچسب</th><th>اولویت</th><th>وضعیت</th><th>فعال</th><th></th></tr></thead>
+    <div class="table-responsive mb-4">
+      <table class="table table-vcenter table-striped mb-0">
+        <thead>
+          <tr>
+            <th>آدرس IP / دامنه</th>
+            <th>برچسب</th>
+            <th>اولویت</th>
+            <th>وضعیت اتصال</th>
+            <th>وضعیت فعلی</th>
+            <th>عملیات</th>
+          </tr>
+        </thead>
         <tbody>
           {% for e in p.endpoints %}
           <tr>
-            <td dir="ltr" class="font-monospace">{{ e.address }}</td>
-            <td>{{ e.label or '—' }}</td>
-            <td>{{ e.priority }}</td>
+            <td dir="ltr" class="font-monospace fw-bold">{{ e.address }}</td>
+            <td><span class="badge bg-light text-secondary px-2 py-1">{{ e.label or '—' }}</span></td>
+            <td class="font-monospace">{{ e.priority }}</td>
             <td>
-              {% if e.status == 'up' %}<span class="badge bg-green-lt">سالم</span>
-              {% elif e.status == 'down' %}<span class="badge bg-red-lt">خاموش</span>
-              {% else %}<span class="badge bg-secondary-lt">نامشخص</span>{% endif %}
+              {% if e.status == 'up' %}
+                <span class="badge bg-green-lt">سالم</span>
+              {% elif e.status == 'down' %}
+                <span class="badge bg-red-lt">خاموش</span>
+              {% else %}
+                <span class="badge bg-secondary-lt">بررسی نشده</span>
+              {% endif %}
             </td>
-            <td>{% if e.active %}<span class="badge bg-green text-white">فعال</span>{% endif %}</td>
+            <td>
+              {% if e.active %}
+                <span class="badge bg-green text-white glow-green">فعال</span>
+              {% else %}
+                <span class="text-muted small">—</span>
+              {% endif %}
+            </td>
             <td class="text-end">
               <div class="btn-list justify-content-end">
                 {% if not e.active %}
-                <form method="post" action="/antifilter/endpoints/{{ e.id }}/activate"><button class="btn btn-sm">فعال‌کن</button></form>
+                <form method="post" action="/antifilter/endpoints/{{ e.id }}/activate" class="d-inline">
+                  <button class="btn btn-sm btn-outline-primary px-3">فعال‌سازی</button>
+                </form>
                 {% endif %}
-                <form method="post" action="/antifilter/endpoints/{{ e.id }}/iran-test"><button class="btn btn-sm btn-outline-azure" title="چند ثانیه طول می‌کشد">تست از ایران</button></form>
-                <form method="post" action="/antifilter/endpoints/{{ e.id }}/delete" onsubmit="return confirm('حذف شود؟')"><button class="btn btn-sm btn-outline-danger">حذف</button></form>
+                <form method="post" action="/antifilter/endpoints/{{ e.id }}/iran-test" class="d-inline">
+                  <button class="btn btn-sm btn-outline-azure px-3" title="بررسی در دسترس بودن از داخل ایران">تست از ایران</button>
+                </form>
+                <form method="post" action="/antifilter/endpoints/{{ e.id }}/delete" onsubmit="return confirm('آیا از حذف این Endpoint اطمینان دارید؟')" class="d-inline">
+                  <button class="btn btn-sm btn-outline-danger px-3">حذف</button>
+                </form>
               </div>
             </td>
           </tr>
           {% endfor %}
           {% if not p.endpoints %}
-          <tr><td colspan="6" class="text-secondary text-center py-3">هنوز endpointی اضافه نشده — لینک از IP/Front پیش‌فرض استفاده می‌کند.</td></tr>
+          <tr>
+            <td colspan="6" class="text-center text-secondary py-3">هنوز Endpointی به این پروکسی اضافه نکرده‌اید.</td>
+          </tr>
           {% endif %}
         </tbody>
       </table>
     </div>
 
     <!-- Add endpoint -->
-    <form method="post" action="/antifilter/{{ p.id }}/endpoints" class="row g-2 align-items-end mb-3">
-      <div class="col-md-5"><label class="form-label">آدرس جدید (IP یا دامنه)</label><input name="address" class="form-control" dir="ltr" placeholder="1.2.3.4" required></div>
-      <div class="col-md-3"><label class="form-label">برچسب</label><input name="label" class="form-control" placeholder="مثلاً ایران-۲"></div>
-      <div class="col-md-2"><label class="form-label">اولویت</label><input name="priority" type="number" class="form-control" value="100"></div>
-      <div class="col-md-2"><button class="btn btn-success w-100">افزودن</button></div>
+    <form method="post" action="/antifilter/{{ p.id }}/endpoints" class="row g-3 align-items-end mb-4 border-bottom pb-4">
+      <div class="col-md-5">
+        <label class="form-label fw-bold">افزودن Endpoint جدید (IP یا دامنه)</label>
+        <input name="address" class="form-control font-monospace" dir="ltr" placeholder="1.2.3.4" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-bold">برچسب</label>
+        <input name="label" class="form-control" placeholder="مثلاً: ایرانسل-۱">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label fw-bold">اولویت</label>
+        <input name="priority" type="number" class="form-control font-monospace" value="100">
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-success w-100 py-2">افزودن آدرس</button>
+      </div>
     </form>
 
     <!-- Domain + auto-rotate -->
-    <form method="post" action="/antifilter/{{ p.id }}/domain" class="row g-2 align-items-end border-top pt-3">
+    <form method="post" action="/antifilter/{{ p.id }}/domain" class="row g-3 align-items-center">
       <div class="col-md-6">
-        <label class="form-label">دامنهٔ مدیریت‌شده (اختیاری — لینک‌ها روی این دامنه می‌روند)</label>
-        <input name="link_domain" class="form-control" dir="ltr" placeholder="proxy.example.com" value="{{ p.link_domain or '' }}">
+        <label class="form-label fw-bold">دامنهٔ مدیریت‌شده (اختیاری — لینک‌ها روی این دامنه ساخته می‌شوند)</label>
+        <input name="link_domain" class="form-control font-monospace" dir="ltr" placeholder="proxy.example.com" value="{{ p.link_domain or '' }}">
       </div>
       <div class="col-md-4">
-        <label class="form-check mt-3">
+        <label class="form-check mt-md-4">
           <input type="checkbox" class="form-check-input" name="auto_rotate" value="1" {{ 'checked' if p.auto_rotate }}>
-          <span class="form-check-label">چرخش خودکار وقتی endpoint فعال خاموش شد</span>
+          <span class="form-check-label fw-medium">چرخش خودکار به محض غیرقابل دسترس شدن Endpoint فعال</span>
         </label>
       </div>
-      <div class="col-md-2"><button class="btn btn-primary w-100">ذخیره</button></div>
+      <div class="col-md-2">
+        <button class="btn btn-primary w-100 mt-md-4">ذخیره دامنه</button>
+      </div>
     </form>
 
+    <!-- Cloudflare Spectrum controller for CF modes -->
     {% if p.mode == 'cloudflare' %}
-    <div class="border-top mt-3 pt-3">
-      <div class="d-flex align-items-center gap-2 flex-wrap">
-        <span class="text-secondary">Cloudflare Spectrum:</span>
-        {% if p.cf_app_id %}<span class="badge bg-green-lt">فعال (app: {{ p.cf_app_id[:8] }}…)</span>{% else %}<span class="badge bg-secondary-lt">ساخته نشده</span>{% endif %}
-        <form method="post" action="/antifilter/{{ p.id }}/spectrum/recreate" class="d-inline"><button class="btn btn-sm">ساخت/بازسازی</button></form>
-        {% if p.cf_app_id %}<form method="post" action="/antifilter/{{ p.id }}/spectrum/delete" class="d-inline"><button class="btn btn-sm btn-outline-danger">حذف اپ</button></form>{% endif %}
+    <div class="border-top mt-4 pt-4">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+          <span class="text-secondary fw-bold">وضعیت اپلیکیشن Cloudflare Spectrum:</span>
+          {% if p.cf_app_id %}
+            <span class="badge bg-green-lt">فعال (App ID: {{ p.cf_app_id[:8] }}…)</span>
+          {% else %}
+            <span class="badge bg-secondary-lt">ایجاد نشده</span>
+          {% endif %}
+        </div>
+        <div class="btn-list">
+          <form method="post" action="/antifilter/{{ p.id }}/spectrum/recreate" class="d-inline">
+            <button class="btn btn-sm btn-outline-primary px-3">ساخت / بازسازی اپلیکیشن</button>
+          </form>
+          {% if p.cf_app_id %}
+          <form method="post" action="/antifilter/{{ p.id }}/spectrum/delete" class="d-inline">
+            <button class="btn btn-sm btn-outline-danger px-3">حذف اپلیکیشن Spectrum</button>
+          </form>
+          {% endif %}
+        </div>
       </div>
     </div>
     {% endif %}

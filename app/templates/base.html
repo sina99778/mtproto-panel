@@ -4,25 +4,52 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{% block title %}پنل مدیریت MTProto{% endblock %}</title>
+  
+  <!-- Preconnect to Google Fonts for optimal performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  
   <script>
     // Apply saved theme before paint to avoid a flash.
-    (function () { try { var t = localStorage.getItem('theme'); if (t) document.documentElement.setAttribute('data-bs-theme', t); } catch (e) {} })();
+    (function () { 
+      try { 
+        var t = localStorage.getItem('theme'); 
+        if (!t) {
+          // Default to dark theme if not set
+          t = 'dark';
+          localStorage.setItem('theme', t);
+        }
+        document.documentElement.setAttribute('data-bs-theme', t); 
+      } catch (e) {} 
+    })();
   </script>
+  
   <link href="{{ TABLER_CSS }}" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
+  
+  <!-- Add a custom CSS block to handle theme transitions -->
+  <style>
+    .theme-transitioning,
+    .theme-transitioning *,
+    .theme-transitioning *:before,
+    .theme-transitioning *:after {
+      transition: all 0.3s ease !important;
+      transition-delay: 0s !important;
+    }
+  </style>
 </head>
 <body>
 {% import "_icons.html" as ic %}
 {% set path = request.url.path %}
 {% if request.session.get('user') %}
 <div class="page">
-  <!-- Sidebar -->
-  <aside class="navbar navbar-vertical navbar-expand-lg" data-bs-theme="dark">
+  <!-- Sidebar (theme adaptation is handled automatically by CSS) -->
+  <aside class="navbar navbar-vertical navbar-expand-lg">
     <div class="container-fluid">
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar-menu">
         <span class="navbar-toggler-icon"></span>
       </button>
-      <a href="/" class="navbar-brand mb-3 mt-1 fw-bold fs-3 text-white d-flex align-items-center gap-2">
+      <a href="/" class="navbar-brand mb-3 mt-1 fw-bold fs-3 d-flex align-items-center gap-2">
         {{ ic.icon('shield') }} پنل MTProto
       </a>
       <div class="collapse navbar-collapse" id="sidebar-menu">
@@ -44,7 +71,7 @@
           </li>
         </ul>
         <div class="mt-auto pb-3 text-center">
-          <span class="badge bg-cyan-lt">نسخه {{ VERSION }}</span>
+          <span class="badge bg-indigo-lt px-2 py-1 fs-5">نسخه {{ VERSION }}</span>
         </div>
       </div>
     </div>
@@ -54,12 +81,12 @@
     <!-- Top bar -->
     <header class="navbar navbar-expand-md d-print-none sticky-top">
       <div class="container-xl">
-        <div class="navbar-nav flex-row order-md-last align-items-center gap-1 ms-auto">
-          <button class="btn btn-icon btn-ghost-secondary" onclick="toggleTheme()" title="حالت تیره/روشن" aria-label="theme">
+        <div class="navbar-nav flex-row order-md-last align-items-center gap-2 ms-auto">
+          <button class="btn btn-icon btn-ghost-secondary rounded-circle" onclick="toggleTheme()" title="حالت تیره/روشن" aria-label="theme">
             <span class="theme-dark">{{ ic.icon('moon') }}</span>
             <span class="theme-light">{{ ic.icon('sun') }}</span>
           </button>
-          <a href="/logout" class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1">
+          <a href="/logout" class="btn btn-outline-danger btn-sm d-flex align-items-center gap-2 border-0">
             {{ ic.icon('logout') }} <span class="d-none d-sm-inline">خروج</span>
           </a>
         </div>
@@ -84,10 +111,11 @@
 
 <!-- QR modal -->
 <div id="qr-modal" onclick="closeQR(event)"
-     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1080;align-items:center;justify-content:center;">
-  <div style="background:#fff;padding:20px;border-radius:14px;text-align:center;">
-    <div id="qrcode" style="display:flex;justify-content:center;"></div>
-    <div style="color:#444;font-size:.85rem;margin-top:10px;">برای اسکن با گوشی دیگر</div>
+     style="display:none;position:fixed;inset:0;background:rgba(9, 13, 22, 0.7);z-index:1080;align-items:center;justify-content:center;">
+  <div class="modal-content-glass" style="padding:28px;border-radius:20px;text-align:center;width:280px;">
+    <div id="qrcode" style="display:flex;justify-content:center;padding:12px;background:#fff;border-radius:12px;box-shadow:0 8px 16px rgba(0,0,0,0.06)"></div>
+    <div class="mt-3 font-weight-bold" style="color:var(--text-main);font-size:.9rem;">برای اسکن با گوشی کلاینت</div>
+    <button id="close-qr-btn" class="btn btn-sm btn-ghost-secondary w-100 mt-3" onclick="closeQR(event)">بستن</button>
   </div>
 </div>
 

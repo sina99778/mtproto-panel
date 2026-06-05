@@ -1,122 +1,167 @@
 {% extends "base.html" %}
+{% import "_icons.html" as ic %}
 {% block content %}
 
-<div class="page-header mb-3">
-  <h2 class="page-title">ساخت پروکسی جدید</h2>
-</div>
-
-{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
-
-<div class="row justify-content-center">
-<div class="col-lg-8">
-<form method="post" action="/proxies">
-  <div class="card">
-    <div class="card-body">
-
-      <div class="mb-3">
-        <label class="form-label required">نام پروکسی</label>
-        <input name="name" class="form-control" placeholder="مثلاً: سرور اصلی" required>
+<div class="page-header mb-4">
+  <div class="row align-items-center">
+    <div class="col">
+      <div class="page-pretitle text-secondary">
+        <a href="/" class="text-decoration-none text-muted d-flex align-items-center gap-1">
+          {{ ic.icon('arrow-left') }} بازگشت به داشبورد
+        </a>
       </div>
-
-      <div class="mb-3">
-        <label class="form-label">نوع اتصال</label>
-        <div class="row g-2">
-          <div class="col-md-4">
-            <label class="form-selectgroup-item">
-              <input type="radio" name="mode" value="direct" class="form-selectgroup-input" checked onchange="onMode()">
-              <span class="form-selectgroup-label w-100"><strong>مستقیم</strong><br><span class="text-secondary small">FakeTLS</span></span>
-            </label>
-          </div>
-          <div class="col-md-4">
-            <label class="form-selectgroup-item">
-              <input type="radio" name="mode" value="tunneled" class="form-selectgroup-input" onchange="onMode()">
-              <span class="form-selectgroup-label w-100"><strong>تانل‌شده</strong><br><span class="text-secondary small">رله به خارج</span></span>
-            </label>
-          </div>
-          <div class="col-md-4">
-            <label class="form-selectgroup-item">
-              <input type="radio" name="mode" value="cloudflare" class="form-selectgroup-input" onchange="onMode()">
-              <span class="form-selectgroup-label w-100"><strong>کلودفلر</strong><br><span class="text-secondary small">Spectrum</span></span>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="col-md-6 mb-3">
-          <label class="form-label required">پورت</label>
-          <input name="port" type="number" min="1" max="65535" value="8443" class="form-control" required>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label">دامنه FakeTLS</label>
-          <input name="tls_domain" value="www.cloudflare.com" dir="ltr" class="form-control">
-        </div>
-      </div>
-
-      <div class="mb-3">
-        <label class="form-label">Secret (خالی = تولید خودکار)</label>
-        <input name="secret" value="{{ suggest_secret }}" dir="ltr" class="form-control font-monospace">
-      </div>
-
-      <div class="mb-3">
-        <label class="form-label">تگ کانال اسپانسر (اختیاری)</label>
-        <input name="ad_tag" placeholder="از ربات @MTProxybot دریافت کنید" dir="ltr" class="form-control font-monospace">
-        <small class="form-hint">برای تبلیغ کانال: به @MTProxybot پیام دهید، پروکسی را ثبت کنید و تگ هگز را اینجا بگذارید.</small>
-      </div>
-
-      <div class="mb-3">
-        <label class="form-label">آدرس نمایشی برای کاربران / Front (اختیاری)</label>
-        <input name="front_host" placeholder="مثلاً IP سرور ایرانِ تونل‌شده — خالی = IP همین سرور" dir="ltr" class="form-control font-monospace">
-        <small class="form-hint">اگر این پروکسی را از طریق تونل (مثل Paqet) روی سرور ایران منتشر می‌کنید، IP سرور ایران را اینجا بگذارید.</small>
-      </div>
-
-      <!-- Tunneled-only -->
-      <div id="f-tunnel" class="d-none">
-        <hr>
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            <label class="form-label">آدرس سرور خارج (Upstream)</label>
-            <input name="upstream_host" placeholder="1.2.3.4 یا دامنه" dir="ltr" class="form-control">
-          </div>
-          <div class="col-md-6 mb-3">
-            <label class="form-label">پورت سرور خارج</label>
-            <input name="upstream_port" type="number" min="1" max="65535" placeholder="443" dir="ltr" class="form-control">
-          </div>
-        </div>
-        <small class="form-hint">Secret و دامنه FakeTLS باید دقیقاً با پروکسی سرور خارج یکی باشد.</small>
-      </div>
-
-      <!-- Cloudflare-only -->
-      <div id="f-cf" class="d-none">
-        <hr>
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            <label class="form-label">دامنه edge کلودفلر</label>
-            <input name="cf_domain" placeholder="proxy.example.com" dir="ltr" class="form-control">
-          </div>
-          <div class="col-md-6 mb-3">
-            <label class="form-label">پورت edge</label>
-            <input name="cf_edge_port" type="number" min="1" max="65535" value="443" dir="ltr" class="form-control">
-          </div>
-        </div>
-        <div class="alert alert-warning mb-0">⚠ نیازمند Cloudflare Spectrum (پلن پولی). توکن و Zone ID را در «تنظیمات» وارد کنید.</div>
-      </div>
-
-    </div>
-    <div class="card-footer text-end">
-      <a href="/" class="btn btn-link">انصراف</a>
-      <button type="submit" class="btn btn-primary">ساخت و اجرا</button>
+      <h2 class="page-title fw-bold fs-1 mt-2">ساخت پروکسی جدید</h2>
     </div>
   </div>
-</form>
 </div>
+
+{% if error %}
+<div class="alert alert-danger border-0 shadow-sm" style="background-color: rgba(244, 63, 94, 0.08); color: var(--accent-red); border-radius: 12px; font-weight: 500;">
+  {{ error }}
+</div>
+{% endif %}
+
+<div class="row justify-content-center">
+  <div class="col-lg-9">
+    <form method="post" action="/proxies">
+      <div class="card p-3">
+        <div class="card-body p-4">
+
+          <div class="mb-4">
+            <label class="form-label required fw-bold fs-4 mb-2">نام پروکسی</label>
+            <input name="name" class="form-control form-control-lg" placeholder="مثلاً: پروکسی پرسرعت همراه اول" required>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-bold fs-4 mb-2">نوع اتصال (مکانیسم پروکسی)</label>
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-selectgroup-item w-100">
+                  <input type="radio" name="mode" value="direct" class="form-selectgroup-input" checked onchange="onMode()">
+                  <span class="form-selectgroup-label d-flex flex-column align-items-center p-3 text-center h-100">
+                    <span class="fs-2 mb-1">⚡</span>
+                    <strong class="fs-4">مستقیم (FakeTLS)</strong>
+                    <span class="text-secondary small mt-1">ترافیک شبیه‌سازی شده به وبسایت‌های خارجی جهت دور زدن DPI</span>
+                  </span>
+                </label>
+              </div>
+              <div class="col-md-4">
+                <label class="form-selectgroup-item w-100">
+                  <input type="radio" name="mode" value="tunneled" class="form-selectgroup-input" onchange="onMode()">
+                  <span class="form-selectgroup-label d-flex flex-column align-items-center p-3 text-center h-100">
+                    <span class="fs-2 mb-1">🔗</span>
+                    <strong class="fs-4">تانل‌شده (رله)</strong>
+                    <span class="text-secondary small mt-1">انتقال ایمن ترافیک از سرور ایران به سرور خارج بدون رمزگشایی</span>
+                  </span>
+                </label>
+              </div>
+              <div class="col-md-4">
+                <label class="form-selectgroup-item w-100">
+                  <input type="radio" name="mode" value="cloudflare" class="form-selectgroup-input" onchange="onMode()">
+                  <span class="form-selectgroup-label d-flex flex-column align-items-center p-3 text-center h-100">
+                    <span class="fs-2 mb-1">☁️</span>
+                    <strong class="fs-4">کلودفلر (Spectrum)</strong>
+                    <span class="text-secondary small mt-1">مخفی‌سازی کامل آی‌پی مبدأ سرور پشت دیوارهای امنیتی کلودفلر</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6 mb-3">
+              <label class="form-label required fw-bold">پورت اتصال کاربران</label>
+              <input name="port" type="number" min="1" max="65535" value="8443" class="form-control font-monospace" required>
+              <small class="form-hint text-secondary">پورت خروجی سرور که کاربران در تلگرام به آن وصل می‌شوند.</small>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-bold">دامنه FakeTLS (SNI)</label>
+              <input name="tls_domain" value="www.cloudflare.com" dir="ltr" class="form-control font-monospace">
+              <small class="form-hint text-secondary">دامنه‌ای فرضی و فیلترنشده برای شبیه‌سازی ترافیک (مثل www.cloudflare.com).</small>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">رمز اتصال (Secret)</label>
+            <input name="secret" value="{{ suggest_secret }}" dir="ltr" class="form-control font-monospace">
+            <small class="form-hint text-secondary">رمز هگز اتصال پروکسی. در صورت نیاز می‌توانید آن را خالی بگذارید تا خودکار تولید شود.</small>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">تگ کانال اسپانسر (Promoted Channel Tag)</label>
+            <input name="ad_tag" placeholder="تگ ۳۲ کاراکتری هگز (به عنوان مثال: 7d102...)" dir="ltr" class="form-control font-monospace">
+            <small class="form-hint text-secondary">برای نمایش کانال تلگرام شما در بالای لیست چت کاربران. کد هگز را از ربات <a href="https://t.me/MTProxybot" target="_blank" class="text-indigo">@MTProxybot</a> دریافت و در این فیلد وارد کنید.</small>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">آدرس نمایشی برای لینک کاربران / Front (اختیاری)</label>
+            <input name="front_host" placeholder="مثلاً: 5.6.7.8 یا proxy.my-domain.com" dir="ltr" class="form-control font-monospace">
+            <small class="form-hint text-secondary">اگر این سرور خارج است و ترافیک را با تونلی مانند Paqet از سرور ایران می‌رسانید، آی‌پی/دامنه سرور ایران را در این فیلد وارد کنید.</small>
+          </div>
+
+          <!-- Tunneled-only segment (toggled by JS) -->
+          <div id="f-tunnel" class="d-none border-top pt-4 mt-4">
+            <h4 class="fw-bold mb-3 text-indigo">⚙️ تنظیمات رله به سرور خارج (تانل داخلی)</h4>
+            <div class="row g-3">
+              <div class="col-md-7">
+                <label class="form-label fw-bold">آدرس سرور خارج (Upstream Host)</label>
+                <input name="upstream_host" placeholder="مثال: 12.34.56.78 یا ex.domain.com" dir="ltr" class="form-control font-monospace">
+              </div>
+              <div class="col-md-5">
+                <label class="form-label fw-bold">پورت سرور خارج (Upstream Port)</label>
+                <input name="upstream_port" type="number" min="1" max="65535" placeholder="8443" dir="ltr" class="form-control font-monospace">
+              </div>
+            </div>
+            <div class="alert alert-info mt-3 border-0" style="background-color: rgba(99, 102, 241, 0.05); color: var(--primary-color);">
+              💡 <strong>نکته مهم:</strong> رمز اتصال (Secret) و دامنه FakeTLS پروکسی در سرور ایران باید دقیقاً همان مقادیر ست شده روی سرور خارج باشد.
+            </div>
+          </div>
+
+          <!-- Cloudflare-only segment (toggled by JS) -->
+          <div id="f-cf" class="d-none border-top pt-4 mt-4">
+            <h4 class="fw-bold mb-3 text-indigo">⚙️ تنظیمات ارتباطی Cloudflare Spectrum</h4>
+            <div class="row g-3">
+              <div class="col-md-7">
+                <label class="form-label fw-bold">دامنه لبه کلودفلر (Edge Domain)</label>
+                <input name="cf_domain" placeholder="مثال: cdn-proxy.my-site.com" dir="ltr" class="form-control font-monospace">
+              </div>
+              <div class="col-md-5">
+                <label class="form-label fw-bold">پورت لبه کلودفلر (Edge Port)</label>
+                <input name="cf_edge_port" type="number" min="1" max="65535" value="443" dir="ltr" class="form-control font-monospace">
+              </div>
+            </div>
+            <div class="alert alert-warning mt-3 border-0" style="background-color: rgba(245, 158, 11, 0.08); color: var(--accent-amber);">
+              ⚠ <strong>پیش‌نیاز:</strong> برای استفاده از حالت کلودفلر، نیاز به خرید پلن Enterprise کلودفلر دارید. همچنین باید API Token و Zone ID خود را پیش از این در بخش «تنظیمات» پنل ذخیره کرده باشید.
+            </div>
+          </div>
+
+        </div>
+        <div class="card-footer text-end p-4 border-top">
+          <a href="/" class="btn btn-link link-secondary me-2">انصراف</a>
+          <button type="submit" class="btn btn-primary px-4 py-2 fs-4">ساخت و اجرای پروکسی</button>
+        </div>
+      </div>
+    </form>
+  </div>
 </div>
 
 <script>
 function onMode() {
   var m = document.querySelector('input[name=mode]:checked').value;
-  document.getElementById('f-tunnel').classList.toggle('d-none', m !== 'tunneled');
-  document.getElementById('f-cf').classList.toggle('d-none', m !== 'cloudflare');
+  
+  const fTunnel = document.getElementById('f-tunnel');
+  const fCf = document.getElementById('f-cf');
+  
+  if (m === 'tunneled') {
+    fTunnel.classList.remove('d-none');
+    fCf.classList.add('d-none');
+  } else if (m === 'cloudflare') {
+    fTunnel.classList.add('d-none');
+    fCf.classList.remove('d-none');
+  } else {
+    fTunnel.classList.add('d-none');
+    fCf.classList.add('d-none');
+  }
 }
 document.addEventListener('DOMContentLoaded', onMode);
 </script>

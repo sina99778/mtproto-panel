@@ -1,56 +1,97 @@
 {% extends "base.html" %}
+{% import "_icons.html" as ic %}
 {% block content %}
 
-<div class="page-header mb-3"><h2 class="page-title">تنظیمات</h2></div>
+<div class="page-header mb-4">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title fw-bold fs-1">تنظیمات عمومی پنل</h2>
+    </div>
+  </div>
+</div>
 
-{% if message %}<div class="alert alert-success">{{ message }}</div>{% endif %}
-{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+{% if message %}
+<div class="alert alert-success border-0 shadow-sm mb-4" style="background-color: rgba(16, 185, 129, 0.08); color: var(--accent-green); border-radius: 12px; font-weight: 500;">
+  {{ message }}
+</div>
+{% endif %}
+
+{% if error %}
+<div class="alert alert-danger border-0 shadow-sm mb-4" style="background-color: rgba(244, 63, 94, 0.08); color: var(--accent-red); border-radius: 12px; font-weight: 500;">
+  {{ error }}
+</div>
+{% endif %}
 
 <div class="row justify-content-center">
-<div class="col-lg-8">
-<form method="post" action="/settings">
+  <div class="col-lg-9">
+    <form method="post" action="/settings">
 
-  <div class="card mb-3">
-    <div class="card-header"><h3 class="card-title">سرور</h3></div>
-    <div class="card-body">
-      <label class="form-label">IP عمومی سرور (برای ساخت لینک‌ها)</label>
-      <input name="server_public_ip" value="{{ server_public_ip }}" dir="ltr" class="form-control">
-    </div>
-  </div>
-
-  <div class="card mb-3">
-    <div class="card-header"><h3 class="card-title">Cloudflare Spectrum (اختیاری)</h3></div>
-    <div class="card-body">
-      <p class="text-secondary small">برای حالت کلودفلر. توکن باید دسترسی ویرایش Spectrum روی Zone را داشته باشد.</p>
-      <div class="mb-3">
-        <label class="form-label">API Token</label>
-        <input name="cf_api_token" value="{{ cf_api_token }}" type="password" dir="ltr" class="form-control">
-      </div>
-      <div>
-        <label class="form-label">Zone ID</label>
-        <input name="cf_zone_id" value="{{ cf_zone_id }}" dir="ltr" class="form-control">
-      </div>
-    </div>
-  </div>
-
-  <div class="card mb-3">
-    <div class="card-header"><h3 class="card-title">تغییر رمز عبور</h3></div>
-    <div class="card-body">
-      <div class="row">
-        <div class="col-md-6 mb-2">
-          <input name="new_password" type="password" placeholder="رمز جدید" class="form-control">
+      <!-- Server Section -->
+      <div class="card mb-4 overflow-hidden">
+        <div class="card-header p-4 bg-light">
+          <h3 class="card-title fw-bold m-0 d-flex align-items-center gap-2">
+            {{ ic.icon('server','text-indigo') }} تنظیمات شبکه سرور
+          </h3>
         </div>
-        <div class="col-md-6 mb-2">
-          <input name="new_password2" type="password" placeholder="تکرار رمز جدید" class="form-control">
+        <div class="card-body p-4">
+          <div class="mb-2">
+            <label class="form-label fw-bold">آی‌پی عمومی سرور (Public IP)</label>
+            <input name="server_public_ip" value="{{ server_public_ip }}" dir="ltr" class="form-control font-monospace form-control-lg">
+            <small class="form-hint text-secondary mt-1">این آدرس به عنوان دامنه/آی‌پی پیش‌فرض در ساخت لینک‌های پروکسی تلگرام کاربران استفاده می‌شود.</small>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="card-footer text-end">
-      <button type="submit" class="btn btn-primary">ذخیره</button>
-    </div>
-  </div>
 
-</form>
-</div>
+      <!-- Cloudflare Section -->
+      <div class="card mb-4 overflow-hidden">
+        <div class="card-header p-4 bg-light">
+          <h3 class="card-title fw-bold m-0 d-flex align-items-center gap-2">
+            {{ ic.icon('world','text-indigo') }} وب‌سرویس Cloudflare (Spectrum / DNS)
+          </h3>
+        </div>
+        <div class="card-body p-4">
+          <p class="text-secondary small mb-3">برای استفاده از مکانیسم چرخش خودکار دامنه (DNS failover) یا ایجاد درگاه Cloudflare Spectrum، مشخصات توکن دامنه‌تان را در فیلدهای زیر وارد کنید.</p>
+          <div class="row g-3">
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-bold">Cloudflare API Token</label>
+              <input name="cf_api_token" value="{{ cf_api_token }}" type="password" dir="ltr" class="form-control font-monospace">
+              <small class="form-hint text-secondary">توکن با دسترسی‌های ویرایش DNS و Spectrum روی Zone مورد نظر.</small>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-bold">Cloudflare Zone ID</label>
+              <input name="cf_zone_id" value="{{ cf_zone_id }}" dir="ltr" class="form-control font-monospace">
+              <small class="form-hint text-secondary">کد شناسایی دامنه (Zone ID) موجود در صفحه Overview دامنه‌تان در پنل کلودفلر.</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Password Section -->
+      <div class="card mb-4 overflow-hidden">
+        <div class="card-header p-4 bg-light">
+          <h3 class="card-title fw-bold m-0 d-flex align-items-center gap-2">
+            {{ ic.icon('settings','text-indigo') }} تغییر کلمه عبور مدیر
+          </h3>
+        </div>
+        <div class="card-body p-4">
+          <p class="text-secondary small mb-3">جهت حفظ امنیت بیشتر، توصیه می‌شود در صورت ورود با پسورد پیش‌فرض نصب، فوراً رمز عبور را به یک مقدار پیچیده تغییر دهید.</p>
+          <div class="row g-3">
+            <div class="col-md-6 mb-2">
+              <label class="form-label fw-bold">کلمه عبور جدید</label>
+              <input name="new_password" type="password" placeholder="رمز جدید (حداقل ۸ کاراکتر)" class="form-control">
+            </div>
+            <div class="col-md-6 mb-2">
+              <label class="form-label fw-bold">تکرار کلمه عبور جدید</label>
+              <input name="new_password2" type="password" placeholder="تکرار رمز جدید" class="form-control">
+            </div>
+          </div>
+        </div>
+        <div class="card-footer text-end p-4 border-top">
+          <button type="submit" class="btn btn-primary px-4 py-2 fs-4">ذخیره تمام تنظیمات</button>
+        </div>
+      </div>
+
+    </form>
+  </div>
 </div>
 {% endblock %}

@@ -2,125 +2,203 @@
 {% import "_icons.html" as ic %}
 {% block content %}
 
-<div class="page-header d-print-none mb-3">
-  <div class="row align-items-center">
+<div class="page-header d-print-none mb-4">
+  <div class="row align-items-center g-3">
     <div class="col">
-      <div class="page-pretitle">مدیریت</div>
-      <h2 class="page-title">داشبورد</h2>
+      <div class="page-pretitle text-muted">مدیریت عمومی</div>
+      <h2 class="page-title fw-bold fs-1">داشبورد مانیتورینگ</h2>
     </div>
     <div class="col-auto ms-auto">
-      <a href="/proxies/new" class="btn btn-primary d-flex align-items-center gap-1">{{ ic.icon('plus') }} پروکسی جدید</a>
+      <a href="/proxies/new" class="btn btn-primary d-flex align-items-center gap-2">
+        {{ ic.icon('plus') }}
+        <span>پروکسی جدید</span>
+      </a>
     </div>
   </div>
 </div>
 
-<div class="mb-3">
+<!-- Network details & BBR status -->
+<div class="mb-4 d-flex flex-wrap gap-2">
   {% if nettune.bbr_active %}
-    <span class="badge bg-green-lt">کنترل ازدحام: {{ nettune.congestion_control }} ✓ BBR فعال</span>
+    <span class="badge d-flex align-items-center gap-1 px-3 py-2 text-success" style="background-color: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.15); border-radius: 20px;">
+      <span class="d-inline-block rounded-circle bg-success glow-green" style="width:6px; height:6px;"></span>
+      <span>کنترل ازدحام: {{ nettune.congestion_control }} (BBR فعال ✓)</span>
+    </span>
   {% else %}
-    <span class="badge bg-yellow-lt">⚠ BBR غیرفعال ({{ nettune.congestion_control }})</span>
+    <span class="badge d-flex align-items-center gap-1 px-3 py-2 text-warning" style="background-color: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.15); border-radius: 20px;">
+      <span class="d-inline-block rounded-circle bg-warning" style="width:6px; height:6px;"></span>
+      <span>⚠ BBR غیرفعال ({{ nettune.congestion_control }})</span>
+    </span>
   {% endif %}
-  <span class="badge bg-azure-lt">صف‌بندی: {{ nettune.qdisc }}</span>
-  {% if not ip %}<span class="badge bg-red-lt">⚠ IP سرور تنظیم نشده — در «تنظیمات» وارد کنید</span>{% endif %}
+  <span class="badge px-3 py-2 text-indigo" style="background-color: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.15); border-radius: 20px;">
+    صف‌بندی: {{ nettune.qdisc }}
+  </span>
+  {% if not ip %}
+    <span class="badge px-3 py-2 text-danger" style="background-color: rgba(244, 63, 94, 0.08); border: 1px solid rgba(244, 63, 94, 0.15); border-radius: 20px;">
+      ⚠ IP سرور تنظیم نشده — در «تنظیمات» وارد کنید
+    </span>
+  {% endif %}
 </div>
 
 <!-- Stat tiles -->
-<div class="row row-deck row-cards mb-3">
+<div class="row row-deck row-cards mb-4">
   <div class="col-sm-6 col-lg-3">
-    <div class="card card-sm"><div class="card-body">
-      <div class="row align-items-center">
-        <div class="col-auto"><span class="bg-primary-lt avatar">{{ ic.icon('users','text-primary') }}</span></div>
-        <div class="col"><div class="h1 m-0" id="tile-active">{{ totals.active }}</div><div class="text-secondary">کاربران آنلاین</div></div>
+    <div class="card" style="border-right: 4px solid var(--primary-color) !important;">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <div class="text-secondary fw-medium">کاربران آنلاین</div>
+          <span class="bg-primary-lt avatar avatar-md rounded-3">{{ ic.icon('users','text-primary') }}</span>
+        </div>
+        <div class="h1 m-0 fw-bold" id="tile-active" style="font-size: 2rem;">{{ totals.active }}</div>
+        <div id="spark-active" class="mt-3" style="min-height:40px"></div>
       </div>
-      <div id="spark-active" class="mt-2" style="min-height:40px"></div>
-    </div></div>
+    </div>
   </div>
+  
   <div class="col-sm-6 col-lg-3">
-    <div class="card card-sm"><div class="card-body">
-      <div class="row align-items-center">
-        <div class="col-auto"><span class="bg-green-lt avatar">{{ ic.icon('traffic','text-green') }}</span></div>
-        <div class="col"><div class="h1 m-0" id="tile-traffic">{{ hb(totals.cum_bytes) }}</div><div class="text-secondary">ترافیک کل</div></div>
+    <div class="card" style="border-right: 4px solid var(--accent-green) !important;">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <div class="text-secondary fw-medium">ترافیک کل مصرفی</div>
+          <span class="bg-green-lt avatar avatar-md rounded-3">{{ ic.icon('traffic','text-green') }}</span>
+        </div>
+        <div class="h1 m-0 fw-bold text-success" id="tile-traffic" style="font-size: 2rem;">{{ hb(totals.cum_bytes) }}</div>
+        <div id="spark-traffic" class="mt-3" style="min-height:40px"></div>
       </div>
-      <div id="spark-traffic" class="mt-2" style="min-height:40px"></div>
-    </div></div>
+    </div>
   </div>
+  
   <div class="col-sm-6 col-lg-3">
-    <div class="card card-sm"><div class="card-body">
-      <div class="row align-items-center">
-        <div class="col-auto"><span class="bg-purple-lt avatar">{{ ic.icon('device','text-purple') }}</span></div>
-        <div class="col"><div class="h1 m-0" id="tile-sessions">{{ totals.sessions }}</div><div class="text-secondary">تعداد استفاده‌ها</div></div>
+    <div class="card" style="border-right: 4px solid #a855f7 !important;">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <div class="text-secondary fw-medium">کل استفاده‌ها (سشن‌ها)</div>
+          <span class="bg-purple-lt avatar avatar-md rounded-3">{{ ic.icon('device','text-purple') }}</span>
+        </div>
+        <div class="h1 m-0 fw-bold" id="tile-sessions" style="font-size: 2.2rem; line-height: 1;">{{ totals.sessions }}</div>
+        <div class="text-secondary small mt-3">تعداد کل درخواست‌های ورودی</div>
       </div>
-    </div></div>
+    </div>
   </div>
+  
   <div class="col-sm-6 col-lg-3">
-    <div class="card card-sm"><div class="card-body">
-      <div class="row align-items-center">
-        <div class="col-auto"><span class="bg-orange-lt avatar">{{ ic.icon('world','text-orange') }}</span></div>
-        <div class="col"><div class="h1 m-0" id="tile-clients">{{ totals.clients }}</div><div class="text-secondary">کاربران یکتا</div></div>
+    <div class="card" style="border-right: 4px solid #f59e0b !important;">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <div class="text-secondary fw-medium">کاربران یکتا (IPها)</div>
+          <span class="bg-orange-lt avatar avatar-md rounded-3">{{ ic.icon('world','text-orange') }}</span>
+        </div>
+        <div class="h1 m-0 fw-bold" id="tile-clients" style="font-size: 2.2rem; line-height: 1;">{{ totals.clients }}</div>
+        <div class="text-secondary small mt-3">تعداد آدرس‌های IP یکتای متصل</div>
       </div>
-    </div></div>
+    </div>
   </div>
 </div>
 
 <!-- Live traffic chart -->
-<div class="card mb-3">
-  <div class="card-header">
-    <h3 class="card-title">ترافیک عبوری (لحظه‌ای)</h3>
-    <div class="card-actions text-secondary small">به‌روزرسانی هر ۱۵ ثانیه</div>
+<div class="card mb-4 overflow-hidden">
+  <div class="card-header p-4 d-flex justify-content-between align-items-center">
+    <div>
+      <h3 class="card-title fw-bold m-0">ترافیک عبوری سرور</h3>
+      <p class="text-secondary small m-0 mt-1">نمودار زنده سرعت پهنای باند عبوری</p>
+    </div>
+    <div class="text-secondary small d-flex align-items-center gap-1">
+      <span class="d-inline-block rounded-circle bg-success glow-green" style="width:8px; height:8px;"></span>
+      <span>به‌روزرسانی خودکار (هر ۱۵ ثانیه)</span>
+    </div>
   </div>
-  <div class="card-body">
-    <div id="chart-traffic" style="min-height:240px"></div>
-    <div id="chart-empty" class="text-secondary text-center py-5 d-none">هنوز داده‌ای برای نمودار جمع نشده — چند لحظه صبر کن.</div>
+  <div class="card-body p-4">
+    <div id="chart-traffic" style="min-height:250px"></div>
+    <div id="chart-empty" class="text-secondary text-center py-5 d-none">درحال دریافت اولین سیگنال داده‌ها...</div>
   </div>
 </div>
 
-<h3 class="mt-4 mb-2">پروکسی‌های من</h3>
+<h2 class="mt-5 mb-3 fw-bold fs-2">پروکسی‌های من</h2>
 
 {% if not proxies %}
 <div class="card"><div class="empty">
+  <div class="empty-icon mb-3" style="font-size: 3rem;">🌐</div>
   <p class="empty-title">هنوز پروکسی‌ای نساخته‌اید</p>
-  <p class="empty-subtitle text-secondary">روی «پروکسی جدید» بزنید تا اولین پروکسی را بسازید.</p>
-  <div class="empty-action"><a href="/proxies/new" class="btn btn-primary">پروکسی جدید</a></div>
+  <p class="empty-subtitle text-secondary">روی دکمه «پروکسی جدید» بزنید تا اولین پروکسی را بسازید.</p>
+  <div class="empty-action"><a href="/proxies/new" class="btn btn-primary mt-2">پروکسی جدید</a></div>
 </div></div>
 {% endif %}
 
-<div class="row row-cards">
+<div class="row row-cards g-3">
   {% set badge = {'direct':'bg-blue-lt','tunneled':'bg-purple-lt','cloudflare':'bg-orange-lt'} %}
   {% set label = {'direct':'مستقیم (FakeTLS)','tunneled':'تانل‌شده','cloudflare':'کلودفلر'} %}
   {% for p in proxies %}
-  <div class="col-12">
-    <div class="card">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-          <div>
-            <h3 class="card-title mb-1">
-              <a href="/proxies/{{ p.id }}" class="text-reset text-decoration-none">{{ p.name }}</a>
-              <span class="badge {{ badge[p.mode] }} ms-1">{{ label[p.mode] }}</span>
-              {% if p.status == 'active' %}<span class="badge bg-green-lt">فعال</span>
-              {% else %}<span class="badge bg-red-lt">{{ p.status }}</span>{% endif %}
+  <div class="col-12 col-md-6 col-lg-6">
+    <div class="card p-2">
+      <div class="card-body d-flex flex-column justify-content-between" style="min-height: 180px;">
+        <div>
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <h3 class="card-title m-0 fw-bold">
+              <a href="/proxies/{{ p.id }}" class="text-reset text-decoration-none hover-indigo">{{ p.name }}</a>
             </h3>
-            <div class="text-secondary small">
-              <span dir="ltr">{{ p.host }}:{{ p.link_port }}</span> · FakeTLS: <span dir="ltr">{{ p.tls_domain }}</span>
-              {% if p.ad_tag %} · کانال اسپانسر ✓{% endif %}
-              {% if p.front_host %} · <span class="text-green">تونل‌شده (Front)</span>{% endif %}
-              {% if p.mode == 'tunneled' %} · <span dir="ltr">→ {{ p.upstream_host }}:{{ p.upstream_port }}</span>{% endif %}
-            </div>
+            <span class="badge {{ badge[p.mode] }} px-2 py-1">{{ label[p.mode] }}</span>
           </div>
-          <div class="btn-list">
-            <a href="/proxies/{{ p.id }}" class="btn btn-sm">مدیریت</a>
-            <form method="post" action="/proxies/{{ p.id }}/toggle">
-              <button class="btn btn-sm {{ 'btn-warning' if p.enabled else 'btn-success' }}">{{ 'توقف' if p.enabled else 'اجرا' }}</button>
-            </form>
-            <form method="post" action="/proxies/{{ p.id }}/delete" onsubmit="return confirm('این پروکسی حذف شود؟')">
-              <button class="btn btn-sm btn-danger">حذف</button>
-            </form>
+          
+          <div class="text-secondary small mb-3">
+            <div class="d-flex align-items-center gap-1 mb-1" dir="ltr">
+              {{ ic.icon('server','text-secondary') }}
+              <span class="font-monospace text-muted">{{ p.host }}:{{ p.link_port }}</span>
+            </div>
+            <div class="d-flex align-items-center gap-1 mb-1">
+              {{ ic.icon('globe','text-secondary') }}
+              <span class="text-muted">FakeTLS:</span> <span dir="ltr" class="font-monospace">{{ p.tls_domain }}</span>
+            </div>
+            {% if p.ad_tag or p.front_host or p.mode == 'tunneled' %}
+              <div class="mt-2 d-flex flex-wrap gap-1">
+                {% if p.ad_tag %}<span class="badge bg-indigo-lt">اسپانسر دارد ✓</span>{% endif %}
+                {% if p.front_host %}<span class="badge bg-green-lt">تانل ایران (Front)</span>{% endif %}
+                {% if p.mode == 'tunneled' %}<span class="badge bg-yellow-lt" dir="ltr">→ {{ p.upstream_host }}</span>{% endif %}
+              </div>
+            {% endif %}
           </div>
         </div>
-        <div class="input-group mt-3">
-          <input type="text" class="form-control proxy-link font-monospace" dir="ltr" readonly value="{{ p.tme }}">
-          <button class="btn" type="button" onclick="copyFromRow(this)">کپی لینک</button>
-          <button class="btn" type="button" onclick="qrFromRow(this)">QR</button>
-          <a class="btn btn-primary" href="{{ p.tg }}">اتصال</a>
+        
+        <div>
+          <!-- Inline inputs and copy list -->
+          <div class="input-group mb-3">
+            <input type="text" class="form-control proxy-link font-monospace bg-light border-end-0 py-1" dir="ltr" readonly value="{{ p.tme }}">
+            <button class="btn btn-outline-secondary d-flex align-items-center gap-1 px-3" type="button" onclick="copyFromRow(this)" title="کپی کردن لینک">
+              {{ ic.icon('copy') }}
+            </button>
+            <button class="btn btn-outline-secondary d-flex align-items-center gap-1 px-3" type="button" onclick="qrFromRow(this)" title="نمایش کد QR">
+              {{ ic.icon('qrcode') }}
+            </button>
+            <a class="btn btn-primary d-flex align-items-center gap-1 px-3" href="{{ p.tg }}">
+              {{ ic.icon('link') }} اتصال
+            </a>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center border-top pt-2">
+            <div class="d-flex align-items-center gap-1">
+              {% if p.status == 'active' %}
+                <span class="d-inline-block rounded-circle bg-success glow-green" style="width:8px; height:8px;"></span>
+                <span class="text-success small fw-bold">فعال و درحال اجرا</span>
+              {% else %}
+                <span class="d-inline-block rounded-circle bg-danger glow-red" style="width:8px; height:8px;"></span>
+                <span class="text-danger small fw-bold">متوقف‌شده</span>
+              {% endif %}
+            </div>
+            <div class="btn-list">
+              <a href="/proxies/{{ p.id }}" class="btn btn-sm btn-ghost-secondary px-2 py-1 d-flex align-items-center gap-1 border-0" title="مدیریت">
+                {{ ic.icon('settings') }}
+              </a>
+              <form method="post" action="/proxies/{{ p.id }}/toggle" class="d-inline">
+                <button class="btn btn-sm btn-ghost-{{ 'warning' if p.enabled else 'success' }} px-2 py-1 d-flex align-items-center gap-1 border-0" title="{{ 'توقف' if p.enabled else 'اجرا' }}">
+                  {{ ic.icon('bolt') }}
+                </button>
+              </form>
+              <form method="post" action="/proxies/{{ p.id }}/delete" onsubmit="return confirm('آیا از حذف این پروکسی اطمینان دارید؟')" class="d-inline">
+                <button class="btn btn-sm btn-ghost-danger px-2 py-1 d-flex align-items-center gap-1 border-0" title="حذف">
+                  {{ ic.icon('trash') }}
+                </button>
+              </form>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -132,5 +210,9 @@
 {% block scripts %}
 <script src="{{ APEX_JS }}" defer></script>
 <script src="/static/charts.js" defer></script>
-<script>window.addEventListener('load', function(){ if(window.initDashboard) initDashboard(); });</script>
+<script>
+  window.addEventListener('load', function(){ 
+    if(window.initDashboard) initDashboard(); 
+  });
+</script>
 {% endblock %}
