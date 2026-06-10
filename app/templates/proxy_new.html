@@ -2,167 +2,160 @@
 {% import "_icons.html" as ic %}
 {% block content %}
 
-<div class="page-header mb-4">
-  <div class="row align-items-center">
+<div class="page-header d-print-none mb-4">
+  <div class="row align-items-center g-2">
     <div class="col">
-      <div class="page-pretitle text-secondary">
-        <a href="/" class="text-decoration-none text-muted d-flex align-items-center gap-1">
-          {{ ic.icon('arrow-left') }} بازگشت به داشبورد
-        </a>
-      </div>
-      <h2 class="page-title fw-bold fs-1 mt-2">ساخت پروکسی جدید</h2>
+      <div class="page-pretitle">پروکسی‌ها</div>
+      <h2 class="page-title fs-1 fw-bold mt-1">ساخت پروکسی جدید</h2>
+    </div>
+    <div class="col-auto">
+      <a href="/" class="btn btn-outline-secondary d-flex align-items-center gap-2">{{ ic.icon('arrow-right') }} بازگشت به داشبورد</a>
     </div>
   </div>
 </div>
 
-{% if error %}
-<div class="alert alert-danger border-0 shadow-sm" style="background-color: rgba(244, 63, 94, 0.08); color: var(--accent-red); border-radius: 12px; font-weight: 500;">
-  {{ error }}
-</div>
-{% endif %}
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
 
 <div class="row justify-content-center">
-  <div class="col-lg-9">
+  <div class="col-12 col-xl-9">
     <form method="post" action="/proxies">
-      <div class="card p-3">
-        <div class="card-body p-4">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title d-flex align-items-center gap-2">{{ ic.icon('shield') }} مشخصات پروکسی</h3>
+        </div>
+        <div class="card-body">
 
+          <!-- Name -->
           <div class="mb-4">
-            <label class="form-label required fw-bold fs-4 mb-2">نام پروکسی</label>
-            <input name="name" class="form-control form-control-lg" placeholder="مثلاً: پروکسی پرسرعت همراه اول" required>
+            <label class="form-label" for="name">نام پروکسی</label>
+            <input type="text" class="form-control" id="name" name="name" placeholder="مثلاً: پروکسی پرسرعت همراه اول" required>
+            <small class="form-hint">یک نام دلخواه برای شناسایی این پروکسی در پنل.</small>
           </div>
 
+          <!-- Mode picker -->
           <div class="mb-4">
-            <label class="form-label fw-bold fs-4 mb-2">نوع اتصال (مکانیسم پروکسی)</label>
-            <div class="row g-3">
-              <div class="col-md-4">
-                <label class="form-selectgroup-item w-100">
+            <label class="form-label">نوع اتصال (مکانیسم پروکسی)</label>
+            <div class="row row-cards g-2">
+              <div class="col-12 col-md-4">
+                <label class="form-selectgroup-item d-block">
                   <input type="radio" name="mode" value="direct" class="form-selectgroup-input" checked onchange="onMode()">
-                  <span class="form-selectgroup-label d-flex flex-column align-items-center p-3 text-center h-100">
-                    <span class="fs-2 mb-1">⚡</span>
-                    <strong class="fs-4">مستقیم (FakeTLS)</strong>
-                    <span class="text-secondary small mt-1">ترافیک شبیه‌سازی شده به وبسایت‌های خارجی جهت دور زدن DPI</span>
+                  <span class="form-selectgroup-label d-flex flex-column gap-1 h-100">
+                    <span class="d-flex align-items-center gap-2 fw-bold">{{ ic.icon('bolt') }} مستقیم (FakeTLS)</span>
+                    <span class="form-hint">ترافیک شبیه‌سازی‌شده به وب‌سایت‌های خارجی جهت دور زدن DPI.</span>
                   </span>
                 </label>
               </div>
-              <div class="col-md-4">
-                <label class="form-selectgroup-item w-100">
+              <div class="col-12 col-md-4">
+                <label class="form-selectgroup-item d-block">
                   <input type="radio" name="mode" value="tunneled" class="form-selectgroup-input" onchange="onMode()">
-                  <span class="form-selectgroup-label d-flex flex-column align-items-center p-3 text-center h-100">
-                    <span class="fs-2 mb-1">🔗</span>
-                    <strong class="fs-4">تانل‌شده (رله)</strong>
-                    <span class="text-secondary small mt-1">انتقال ایمن ترافیک از سرور ایران به سرور خارج بدون رمزگشایی</span>
+                  <span class="form-selectgroup-label d-flex flex-column gap-1 h-100">
+                    <span class="d-flex align-items-center gap-2 fw-bold">{{ ic.icon('link') }} تانل‌شده (رله)</span>
+                    <span class="form-hint">انتقال ایمن ترافیک از سرور ایران به سرور خارج بدون رمزگشایی.</span>
                   </span>
                 </label>
               </div>
-              <div class="col-md-4">
-                <label class="form-selectgroup-item w-100">
+              <div class="col-12 col-md-4">
+                <label class="form-selectgroup-item d-block">
                   <input type="radio" name="mode" value="cloudflare" class="form-selectgroup-input" onchange="onMode()">
-                  <span class="form-selectgroup-label d-flex flex-column align-items-center p-3 text-center h-100">
-                    <span class="fs-2 mb-1">☁️</span>
-                    <strong class="fs-4">کلودفلر (Spectrum)</strong>
-                    <span class="text-secondary small mt-1">مخفی‌سازی کامل آی‌پی مبدأ سرور پشت دیوارهای امنیتی کلودفلر</span>
+                  <span class="form-selectgroup-label d-flex flex-column gap-1 h-100">
+                    <span class="d-flex align-items-center gap-2 fw-bold">{{ ic.icon('world') }} کلودفلر (Spectrum)</span>
+                    <span class="form-hint">مخفی‌سازی کامل آی‌پی مبدأ سرور پشت شبکهٔ کلودفلر.</span>
                   </span>
                 </label>
               </div>
             </div>
           </div>
 
-          <div class="row g-3">
-            <div class="col-md-6 mb-3">
-              <label class="form-label required fw-bold">پورت اتصال کاربران</label>
-              <input name="port" type="number" min="1" max="65535" value="8443" class="form-control font-monospace" required>
-              <small class="form-hint text-secondary">پورت خروجی سرور که کاربران در تلگرام به آن وصل می‌شوند.</small>
+          <!-- Port + TLS domain -->
+          <div class="row g-3 mb-4">
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="port">پورت اتصال کاربران</label>
+              <input type="number" min="1" max="65535" class="form-control font-monospace" id="port" name="port" dir="ltr" value="8443" required>
+              <small class="form-hint">پورت خروجی سرور که کاربران در تلگرام به آن وصل می‌شوند.</small>
             </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label fw-bold">دامنه FakeTLS (SNI)</label>
-              <input name="tls_domain" value="www.cloudflare.com" dir="ltr" class="form-control font-monospace">
-              <small class="form-hint text-secondary">دامنه‌ای فرضی و فیلترنشده برای شبیه‌سازی ترافیک (مثل www.cloudflare.com).</small>
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="tls_domain">دامنهٔ FakeTLS (SNI)</label>
+              <input type="text" class="form-control font-monospace" id="tls_domain" name="tls_domain" dir="ltr" value="www.cloudflare.com">
+              <small class="form-hint">دامنه‌ای فیلترنشده برای شبیه‌سازی ترافیک (مثل www.cloudflare.com).</small>
             </div>
           </div>
 
-          <div class="mb-3">
-            <label class="form-label fw-bold">رمز اتصال (Secret)</label>
-            <input name="secret" value="{{ suggest_secret }}" dir="ltr" class="form-control font-monospace">
-            <small class="form-hint text-secondary">رمز هگز اتصال پروکسی. در صورت نیاز می‌توانید آن را خالی بگذارید تا خودکار تولید شود.</small>
+          <!-- Secret -->
+          <div class="mb-4">
+            <label class="form-label" for="secret">رمز اتصال (Secret)</label>
+            <input type="text" class="form-control font-monospace" id="secret" name="secret" dir="ltr" value="{{ suggest_secret }}">
+            <small class="form-hint">رمز هگز اتصال پروکسی. در صورت خالی گذاشتن، خودکار تولید می‌شود.</small>
           </div>
 
-          <div class="mb-3">
-            <label class="form-label fw-bold">تگ کانال اسپانسر (Promoted Channel Tag)</label>
-            <input name="ad_tag" placeholder="تگ ۳۲ کاراکتری هگز (به عنوان مثال: 7d102...)" dir="ltr" class="form-control font-monospace">
-            <small class="form-hint text-secondary">برای نمایش کانال تلگرام شما در بالای لیست چت کاربران. کد هگز را از ربات <a href="https://t.me/MTProxybot" target="_blank" class="text-indigo">@MTProxybot</a> دریافت و در این فیلد وارد کنید.</small>
+          <!-- Ad tag -->
+          <div class="mb-4">
+            <label class="form-label" for="ad_tag">تگ کانال اسپانسر (Ad Tag)</label>
+            <input type="text" class="form-control font-monospace" id="ad_tag" name="ad_tag" dir="ltr" placeholder="تگ ۳۲ کاراکتری هگز">
+            <small class="form-hint">برای نمایش کانال اسپانسر در بالای لیست چت کاربران. کد هگز را از <span dir="ltr">@MTProxybot</span> دریافت کنید.</small>
           </div>
 
-          <div class="mb-3">
-            <label class="form-label fw-bold">آدرس نمایشی برای لینک کاربران / Front (اختیاری)</label>
-            <input name="front_host" placeholder="مثلاً: 5.6.7.8 یا proxy.my-domain.com" dir="ltr" class="form-control font-monospace">
-            <small class="form-hint text-secondary">اگر این سرور خارج است و ترافیک را با تونلی مانند Paqet از سرور ایران می‌رسانید، آی‌پی/دامنه سرور ایران را در این فیلد وارد کنید.</small>
+          <!-- Front host -->
+          <div class="mb-4">
+            <label class="form-label" for="front_host">آدرس نمایشی / Front (اختیاری)</label>
+            <input type="text" class="form-control font-monospace" id="front_host" name="front_host" dir="ltr" placeholder="مثلاً: 5.6.7.8 یا proxy.my-domain.com">
+            <small class="form-hint">اگر ترافیک را با تونلی مانند Paqet از سرور ایران می‌رسانید، آی‌پی/دامنهٔ سرور ایران را وارد کنید.</small>
           </div>
 
           <!-- Tunneled-only segment (toggled by JS) -->
-          <div id="f-tunnel" class="d-none border-top pt-4 mt-4">
-            <h4 class="fw-bold mb-3 text-indigo">⚙️ تنظیمات رله به سرور خارج (تانل داخلی)</h4>
-            <div class="row g-3">
-              <div class="col-md-7">
-                <label class="form-label fw-bold">آدرس سرور خارج (Upstream Host)</label>
-                <input name="upstream_host" placeholder="مثال: 12.34.56.78 یا ex.domain.com" dir="ltr" class="form-control font-monospace">
+          <div id="f-tunnel" class="d-none">
+            <hr class="my-4">
+            <h4 class="fw-bold mb-3 d-flex align-items-center gap-2 text-primary">{{ ic.icon('server') }} تنظیمات رله به سرور خارج (تانل داخلی)</h4>
+            <div class="row g-3 mb-1">
+              <div class="col-12 col-md-7">
+                <label class="form-label" for="upstream_host">آدرس سرور خارج (Upstream Host)</label>
+                <input type="text" class="form-control font-monospace" id="upstream_host" name="upstream_host" dir="ltr" placeholder="مثال: 12.34.56.78 یا ex.domain.com">
               </div>
-              <div class="col-md-5">
-                <label class="form-label fw-bold">پورت سرور خارج (Upstream Port)</label>
-                <input name="upstream_port" type="number" min="1" max="65535" placeholder="8443" dir="ltr" class="form-control font-monospace">
+              <div class="col-12 col-md-5">
+                <label class="form-label" for="upstream_port">پورت سرور خارج (Upstream Port)</label>
+                <input type="number" min="1" max="65535" class="form-control font-monospace" id="upstream_port" name="upstream_port" dir="ltr" placeholder="8443">
               </div>
             </div>
-            <div class="alert alert-info mt-3 border-0" style="background-color: rgba(99, 102, 241, 0.05); color: var(--primary-color);">
-              💡 <strong>نکته مهم:</strong> رمز اتصال (Secret) و دامنه FakeTLS پروکسی در سرور ایران باید دقیقاً همان مقادیر ست شده روی سرور خارج باشد.
+            <div class="alert alert-info mt-3 d-flex align-items-center gap-2">
+              {{ ic.icon('alert') }}
+              <span><strong>نکته:</strong> رمز اتصال (Secret) و دامنهٔ FakeTLS در سرور ایران باید دقیقاً همان مقادیر سرور خارج باشد.</span>
             </div>
           </div>
 
           <!-- Cloudflare-only segment (toggled by JS) -->
-          <div id="f-cf" class="d-none border-top pt-4 mt-4">
-            <h4 class="fw-bold mb-3 text-indigo">⚙️ تنظیمات ارتباطی Cloudflare Spectrum</h4>
-            <div class="row g-3">
-              <div class="col-md-7">
-                <label class="form-label fw-bold">دامنه لبه کلودفلر (Edge Domain)</label>
-                <input name="cf_domain" placeholder="مثال: cdn-proxy.my-site.com" dir="ltr" class="form-control font-monospace">
+          <div id="f-cf" class="d-none">
+            <hr class="my-4">
+            <h4 class="fw-bold mb-3 d-flex align-items-center gap-2 text-primary">{{ ic.icon('world') }} تنظیمات ارتباطی Cloudflare Spectrum</h4>
+            <div class="row g-3 mb-1">
+              <div class="col-12 col-md-7">
+                <label class="form-label" for="cf_domain">دامنهٔ لبهٔ کلودفلر (Edge Domain)</label>
+                <input type="text" class="form-control font-monospace" id="cf_domain" name="cf_domain" dir="ltr" placeholder="مثال: cdn-proxy.my-site.com">
               </div>
-              <div class="col-md-5">
-                <label class="form-label fw-bold">پورت لبه کلودفلر (Edge Port)</label>
-                <input name="cf_edge_port" type="number" min="1" max="65535" value="443" dir="ltr" class="form-control font-monospace">
+              <div class="col-12 col-md-5">
+                <label class="form-label" for="cf_edge_port">پورت لبهٔ کلودفلر (Edge Port)</label>
+                <input type="number" min="1" max="65535" class="form-control font-monospace" id="cf_edge_port" name="cf_edge_port" dir="ltr" value="443">
               </div>
             </div>
-            <div class="alert alert-warning mt-3 border-0" style="background-color: rgba(245, 158, 11, 0.08); color: var(--accent-amber);">
-              ⚠ <strong>پیش‌نیاز:</strong> برای استفاده از حالت کلودفلر، نیاز به خرید پلن Enterprise کلودفلر دارید. همچنین باید API Token و Zone ID خود را پیش از این در بخش «تنظیمات» پنل ذخیره کرده باشید.
+            <div class="alert alert-warning mt-3 d-flex align-items-center gap-2">
+              {{ ic.icon('alert') }}
+              <span><strong>پیش‌نیاز:</strong> برای استفاده از این حالت به یک اپلیکیشن فعال <span dir="ltr">Cloudflare Spectrum</span> و ذخیرهٔ توکن API در «تنظیمات» نیاز دارید.</span>
             </div>
           </div>
 
         </div>
-        <div class="card-footer text-end p-4 border-top">
-          <a href="/" class="btn btn-link link-secondary me-2">انصراف</a>
-          <button type="submit" class="btn btn-primary px-4 py-2 fs-4">ساخت و اجرای پروکسی</button>
+        <div class="card-footer d-flex align-items-center justify-content-end gap-2">
+          <a href="/" class="btn btn-outline-secondary">انصراف</a>
+          <button type="submit" class="btn btn-primary d-flex align-items-center gap-2">{{ ic.icon('bolt') }} ساخت و اجرا</button>
         </div>
       </div>
     </form>
   </div>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
 <script>
-function onMode() {
-  var m = document.querySelector('input[name=mode]:checked').value;
-  
-  const fTunnel = document.getElementById('f-tunnel');
-  const fCf = document.getElementById('f-cf');
-  
-  if (m === 'tunneled') {
-    fTunnel.classList.remove('d-none');
-    fCf.classList.add('d-none');
-  } else if (m === 'cloudflare') {
-    fTunnel.classList.add('d-none');
-    fCf.classList.remove('d-none');
-  } else {
-    fTunnel.classList.add('d-none');
-    fCf.classList.add('d-none');
-  }
-}
-document.addEventListener('DOMContentLoaded', onMode);
+function onMode(){var m=document.querySelector('input[name=mode]:checked').value;document.getElementById('f-tunnel').classList.toggle('d-none',m!=='tunneled');document.getElementById('f-cf').classList.toggle('d-none',m!=='cloudflare');}
+document.addEventListener('DOMContentLoaded',onMode);
 </script>
 {% endblock %}

@@ -2,122 +2,107 @@
 {% import "_icons.html" as ic %}
 {% block content %}
 
-<div class="page-header mb-4">
-  <div class="row align-items-center g-3">
+<div class="page-header d-print-none mb-4">
+  <div class="row align-items-center g-2">
     <div class="col">
-      <h2 class="page-title fw-bold fs-1">آمار و مانیتورینگ کلی</h2>
-      <p class="text-secondary small m-0 mt-1">گزارش لحظه‌ای مصرف ترافیک و توزیع کاربران در پروکسی‌ها</p>
+      <div class="page-pretitle">مدیریت</div>
+      <h2 class="page-title fs-1 fw-bold mt-1">آمار و مانیتورینگ</h2>
     </div>
-    <div class="col-auto ms-auto text-secondary small d-flex align-items-center gap-1">
-      <span class="d-inline-block rounded-circle bg-success glow-green" style="width:8px; height:8px;"></span>
-      <span>به‌روزرسانی خودکار (هر ۱۵ ثانیه)</span>
+    <div class="col-auto">
+      <span class="badge bg-green-lt d-inline-flex align-items-center gap-1 px-2 py-1">
+        <span class="status-dot on"></span> به‌روزرسانی زنده هر ۱۵ ثانیه
+      </span>
     </div>
   </div>
 </div>
 
 <!-- Stat tiles -->
-<div class="row row-deck row-cards mb-4">
-  <div class="col-6 col-lg-3">
-    <div class="card" style="border-right: 4px solid var(--primary-color) !important;">
-      <div class="card-body p-3">
-        <div class="d-flex align-items-center justify-content-between mb-2">
-          <div class="text-secondary small fw-medium">کل کاربران آنلاین</div>
-          <span class="bg-primary-lt avatar avatar-sm rounded-3">{{ ic.icon('users','text-primary') }}</span>
-        </div>
-        <div class="h2 m-0 fw-bold" id="tile-active">{{ snap.totals.active }}</div>
+<div class="row row-cards mb-4">
+  <div class="col-sm-6 col-lg-3">
+    <div class="card stat-tile"><div class="card-body">
+      <div class="d-flex align-items-center justify-content-between">
+        <div><div class="stat-value" id="tile-active">{{ snap.totals.active }}</div><div class="stat-label">کاربران آنلاین</div></div>
+        <span class="stat-chip is-primary">{{ ic.icon('users') }}</span>
       </div>
-    </div>
+    </div></div>
   </div>
-  
-  <div class="col-6 col-lg-3">
-    <div class="card" style="border-right: 4px solid var(--accent-green) !important;">
-      <div class="card-body p-3">
-        <div class="d-flex align-items-center justify-content-between mb-2">
-          <div class="text-secondary small fw-medium">ترافیک کل ردوبدل‌شده</div>
-          <span class="bg-green-lt avatar avatar-sm rounded-3">{{ ic.icon('traffic','text-green') }}</span>
-        </div>
-        <div class="h2 m-0 fw-bold text-success" id="tile-traffic">{{ hb(snap.totals.cum_bytes) }}</div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card stat-tile"><div class="card-body">
+      <div class="d-flex align-items-center justify-content-between">
+        <div><div class="stat-value text-success" id="tile-traffic">{{ hb(snap.totals.cum_bytes) }}</div><div class="stat-label">ترافیک کل</div></div>
+        <span class="stat-chip is-green">{{ ic.icon('traffic') }}</span>
       </div>
-    </div>
+    </div></div>
   </div>
-  
-  <div class="col-6 col-lg-3">
-    <div class="card" style="border-right: 4px solid #a855f7 !important;">
-      <div class="card-body p-3">
-        <div class="d-flex align-items-center justify-content-between mb-2">
-          <div class="text-secondary small fw-medium">مجموع دفعات اتصال</div>
-          <span class="bg-purple-lt avatar avatar-sm rounded-3">{{ ic.icon('device','text-purple') }}</span>
-        </div>
-        <div class="h2 m-0 fw-bold" id="tile-sessions">{{ snap.totals.sessions }}</div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card stat-tile"><div class="card-body">
+      <div class="d-flex align-items-center justify-content-between">
+        <div><div class="stat-value" id="tile-sessions">{{ snap.totals.sessions }}</div><div class="stat-label">تعداد استفاده‌ها</div></div>
+        <span class="stat-chip is-purple">{{ ic.icon('device') }}</span>
       </div>
-    </div>
+    </div></div>
   </div>
-  
-  <div class="col-6 col-lg-3">
-    <div class="card" style="border-right: 4px solid #f59e0b !important;">
-      <div class="card-body p-3">
-        <div class="d-flex align-items-center justify-content-between mb-2">
-          <div class="text-secondary small fw-medium">کاربران یکتای کل</div>
-          <span class="bg-orange-lt avatar avatar-sm rounded-3">{{ ic.icon('world','text-orange') }}</span>
-        </div>
-        <div class="h2 m-0 fw-bold" id="tile-clients">{{ snap.totals.clients }}</div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card stat-tile"><div class="card-body">
+      <div class="d-flex align-items-center justify-content-between">
+        <div><div class="stat-value" id="tile-clients">{{ snap.totals.clients }}</div><div class="stat-label">کاربران یکتا</div></div>
+        <span class="stat-chip is-amber">{{ ic.icon('world') }}</span>
       </div>
+    </div></div>
+  </div>
+</div>
+
+<!-- Operators distribution -->
+<div class="card mb-4">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <h3 class="card-title">اپراتورهای کاربران</h3>
+    <span class="text-secondary small">توزیع کاربران بر اساس اپراتور</span>
+  </div>
+  <div class="card-body">
+    <div id="chart-ops" style="min-height:280px"></div>
+    <div id="ops-empty" class="text-secondary {{ '' if not snap.totals.operators else 'd-none' }} text-center py-5">
+      داده‌ای برای طبقه‌بندی اپراتورها در دسترس نیست — چند لحظه صبر کن.
     </div>
   </div>
 </div>
 
-<div class="row row-cards g-3">
-  <!-- Operators distribution donut -->
-  <div class="col-lg-5">
-    <div class="card h-100">
-      <div class="card-header p-4"><h3 class="card-title fw-bold m-0">توزیع اپراتورهای کاربران</h3></div>
-      <div class="card-body p-4 d-flex flex-column justify-content-center">
-        <div id="chart-ops" style="min-height:300px"></div>
-        <div id="ops-empty" class="text-secondary text-center py-5 {{ '' if snap.totals.operators else 'd-none' }}">
-          داده‌ای برای طبقه‌بندی اپراتورها در دسترس نیست (ترافیک کلاینت‌ها از تونل لوکال فوروارد می‌شود).
-        </div>
-      </div>
-    </div>
+<!-- Per-proxy breakdown -->
+<div class="card">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <h3 class="card-title">به تفکیک پروکسی</h3>
+    <span class="text-secondary small">{{ snap.proxies|length }} پروکسی</span>
   </div>
-
-  <!-- Proxies breakdown table -->
-  <div class="col-lg-7">
-    <div class="card h-100 overflow-hidden">
-      <div class="card-header p-4"><h3 class="card-title fw-bold m-0">آمار زنده به تفکیک پروکسی</h3></div>
-      <div class="table-responsive">
-        <table class="table table-vcenter card-table table-striped mb-0">
-          <thead>
-            <tr>
-              <th>نام پروکسی</th>
-              <th>آنلاین</th>
-              <th>سرعت</th>
-              <th>ترافیک کل</th>
-              <th>سشن</th>
-              <th>یکتا</th>
-              <th>اپراتور برتر</th>
-            </tr>
-          </thead>
-          <tbody id="proxy-rows">
-            {% for p in snap.proxies %}
-            <tr>
-              <td class="fw-bold"><a href="/proxies/{{ p.id }}" class="text-decoration-none hover-indigo">{{ p.name }}</a></td>
-              <td><span class="badge bg-indigo-lt px-2 py-1 fs-5">{{ p.active }}</span></td>
-              <td class="text-secondary">{{ hr(p.rate_bps) }}</td>
-              <td class="text-success font-monospace">{{ hb(p.cum_bytes) }}</td>
-              <td>{{ p.sessions }}</td>
-              <td>{{ p.clients }}</td>
-              <td>
-                <span class="badge bg-light text-secondary px-2 py-1">{{ p.operators[0].operator if p.operators else '—' }}</span>
-              </td>
-            </tr>
-            {% endfor %}
-            {% if not snap.proxies %}
-            <tr><td colspan="7" class="text-center text-secondary py-4">هیچ پروکسی‌ای پیکربندی نشده است.</td></tr>
-            {% endif %}
-          </tbody>
-        </table>
-      </div>
-    </div>
+  <div class="table-responsive">
+    <table class="table card-table table-vcenter mb-0">
+      <thead>
+        <tr>
+          <th>نام پروکسی</th>
+          <th>آنلاین</th>
+          <th>سرعت</th>
+          <th>ترافیک کل</th>
+          <th>استفاده‌ها</th>
+          <th>کاربران یکتا</th>
+          <th>اپراتور برتر</th>
+        </tr>
+      </thead>
+      <tbody id="proxy-rows">
+        {% for p in snap.proxies %}
+        <tr>
+          <td class="fw-bold"><a href="/proxies/{{ p.id }}">{{ p.name }}</a></td>
+          <td><span class="badge bg-blue-lt">{{ p.active }}</span></td>
+          <td class="text-secondary" dir="ltr">{{ hr(p.rate_bps) }}</td>
+          <td class="text-success font-monospace">{{ hb(p.cum_bytes) }}</td>
+          <td>{{ p.sessions }}</td>
+          <td>{{ p.clients }}</td>
+          <td>
+            <span class="badge bg-secondary-lt">{{ p.operators[0].operator if p.operators else '—' }}</span>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center text-secondary py-5">هیچ پروکسی‌ای پیکربندی نشده است.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 </div>
 {% endblock %}
@@ -125,9 +110,5 @@
 {% block scripts %}
 <script src="{{ APEX_JS }}" defer></script>
 <script src="/static/charts.js" defer></script>
-<script>
-  window.addEventListener('load', function(){ 
-    if(window.initStats) initStats(); 
-  });
-</script>
+<script>window.addEventListener('load',function(){ if(window.initStats) initStats(); });</script>
 {% endblock %}

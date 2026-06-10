@@ -4,39 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{% block title %}پنل مدیریت MTProto{% endblock %}</title>
-  
-  <!-- Preconnect to Google Fonts for optimal performance -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  
   <script>
-    // Apply saved theme before paint to avoid a flash.
-    (function () { 
-      try { 
-        var t = localStorage.getItem('theme'); 
-        if (!t) {
-          // Default to dark theme if not set
-          t = 'dark';
-          localStorage.setItem('theme', t);
-        }
-        document.documentElement.setAttribute('data-bs-theme', t); 
-      } catch (e) {} 
+    // Apply saved theme before paint to avoid a flash (default: dark).
+    (function () {
+      try {
+        var t = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-bs-theme', t);
+      } catch (e) {}
     })();
   </script>
-  
   <link href="{{ TABLER_CSS }}" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
-  
-  <!-- Add a custom CSS block to handle theme transitions -->
-  <style>
-    .theme-transitioning,
-    .theme-transitioning *,
-    .theme-transitioning *:before,
-    .theme-transitioning *:after {
-      transition: all 0.3s ease !important;
-      transition-delay: 0s !important;
-    }
-  </style>
 </head>
 <body>
 {% import "_icons.html" as ic %}

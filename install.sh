@@ -93,6 +93,11 @@ dl "https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/css/tabler.rtl.min.css
 dl "https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/js/tabler.min.js"       "$VENDOR/tabler.min.js"       || true
 dl "https://cdn.jsdelivr.net/npm/apexcharts@latest/dist/apexcharts.min.js"        "$VENDOR/apexcharts.min.js"   || true
 dl "https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@gh-pages/qrcode.min.js"      "$VENDOR/qrcode.min.js"       || true
+# Self-host the Vazirmatn font (Google Fonts is filtered in Iran).
+mkdir -p "$VENDOR/fonts"
+for w in 300 400 500 600 700; do
+  dl "https://cdn.jsdelivr.net/fontsource/fonts/vazirmatn@latest/arabic-$w-normal.woff2" "$VENDOR/fonts/Vazirmatn-$w.woff2" || true
+done
 if [ -s "$VENDOR/tabler.rtl.min.css" ]; then
   log "دارایی‌ها محلی شدند (مستقل از CDN)."
 else
